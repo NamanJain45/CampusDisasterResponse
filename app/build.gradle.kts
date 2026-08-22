@@ -34,4 +34,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("androidx.media3:media3-exoplayer:1.2.1")
+    implementation("androidx.media3:media3-ui:1.2.1")
+
+    testImplementation("junit:junit:4.13.2")
 }
