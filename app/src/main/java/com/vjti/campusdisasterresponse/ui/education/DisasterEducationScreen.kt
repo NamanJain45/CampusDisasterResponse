@@ -22,6 +22,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DisasterEducationScreen(viewModel: EducationViewModel) {
     val disasterTypes by viewModel.disasterTypes.collectAsState()

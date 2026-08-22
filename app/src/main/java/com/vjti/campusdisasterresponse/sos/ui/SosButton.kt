@@ -123,7 +123,7 @@ fun SosPressAndHoldButton(
         modifier = Modifier.size(220.dp)
     ) {
         CircularProgressIndicator(
-            progress = { progress },
+            progress = progress,
             modifier = Modifier.size(210.dp),
             color = Color.Red,
             strokeWidth = 8.dp,

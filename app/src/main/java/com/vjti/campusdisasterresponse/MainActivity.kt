@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,9 +41,9 @@ class MainActivity : ComponentActivity() {
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
-    object Education : Screen("education", "Education", Icons.Default.MenuBook)
+    object Education : Screen("education", "Education", Icons.Default.List)
     object Response : Screen("response", "Response", Icons.Default.Warning)
-    object Admin : Screen("admin", "Admin", Icons.Default.AdminPanelSettings)
+    object Admin : Screen("admin", "Admin", Icons.Default.Settings)
 }
 
 @Composable
