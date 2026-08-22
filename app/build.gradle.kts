@@ -25,6 +25,7 @@ android {
 }
 
 dependencies {
+    implementation("com.google.android.gms:play-services-nearby:19.4.0")
     implementation("com.google.android.gms:play-services-location:21.2.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
