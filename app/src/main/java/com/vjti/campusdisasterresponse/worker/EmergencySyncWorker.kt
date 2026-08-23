@@ -3,9 +3,8 @@ package com.vjti.campusdisasterresponse.worker
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.vjti.campusdisasterresponse.data.sync.EmergencyEvent
-import com.vjti.campusdisasterresponse.data.sync.EmergencySyncDatabase
-import com.vjti.campusdisasterresponse.data.sync.SyncStatus
+import com.vjti.campusdisasterresponse.data.local.AppDatabase
+import com.vjti.campusdisasterresponse.data.queue.EmergencyEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -17,37 +16,36 @@ class EmergencySyncWorker(
     override suspend fun doWork(): Result =
         withContext(Dispatchers.IO) {
 
-            val db =
-                EmergencySyncDatabase.getDatabase(
-                    applicationContext
-                )
+            val dao =
+                AppDatabase
+                    .getDatabase(applicationContext)
+                    .emergencyEventDao()
 
-            val dao = db.emergencyDao()
+            dao.markPendingAsSyncing()
 
-            val pendingEvents =
-                dao.getPendingEvents()
+            val eventsToSync =
+                dao.getEventsToSync()
 
-            if (pendingEvents.isEmpty()) {
+            if (eventsToSync.isEmpty()) {
                 return@withContext Result.success()
             }
 
             var hasFailure = false
 
-            for (event in pendingEvents) {
+            for (event in eventsToSync) {
 
                 val isTransmitted =
                     transmitEvent(event)
 
                 if (isTransmitted) {
-
-                    val updatedEvent =
-                        event.copy(
-                            syncStatus = SyncStatus.SYNCED
-                        )
-
-                    dao.updateEvent(updatedEvent)
-
+                    dao.markAsSynced(
+                        listOf(event.id)
+                    )
                 } else {
+                    dao.markAsFailed(
+                        listOf(event.id)
+                    )
+
                     hasFailure = true
                 }
             }
@@ -64,7 +62,7 @@ class EmergencySyncWorker(
     ): Boolean {
 
         return try {
-            // Replace with Retrofit/Ktor backend sync later.
+            // Replace with real backend transmission later.
             true
         } catch (e: Exception) {
             false

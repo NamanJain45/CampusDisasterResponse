@@ -28,6 +28,7 @@ import com.vjti.campusdisasterresponse.state.AppViewModelFactory
 import com.vjti.campusdisasterresponse.state.AppStateRepository
 import com.vjti.campusdisasterresponse.sos.ui.SosViewModel
 import com.vjti.campusdisasterresponse.sos.ui.SosViewModelFactory
+import com.vjti.campusdisasterresponse.worker.SyncScheduler
 import com.vjti.campusdisasterresponse.data.local.AppDatabase
 import com.vjti.campusdisasterresponse.data.queue.EmergencyQueueRepository
 import androidx.compose.ui.Alignment
@@ -79,9 +80,12 @@ fun MainApp() {
 
     val queueRepository = remember(context) {
         EmergencyQueueRepository(
-            AppDatabase
+            dao = AppDatabase
                 .getDatabase(context)
-                .emergencyEventDao()
+                .emergencyEventDao(),
+            scheduleSync = {
+                SyncScheduler.scheduleSync(context)
+            }
         )
     }
 

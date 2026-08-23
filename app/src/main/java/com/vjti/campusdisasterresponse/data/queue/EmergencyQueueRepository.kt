@@ -3,7 +3,8 @@ package com.vjti.campusdisasterresponse.data.queue
 import com.vjti.campusdisasterresponse.sos.model.EmergencyEvent as SosEmergencyEvent
 
 class EmergencyQueueRepository(
-    private val dao: EmergencyEventDao
+    private val dao: EmergencyEventDao,
+    private val scheduleSync: () -> Unit = {}
 ) {
 
     suspend fun enqueueSos(
@@ -19,5 +20,6 @@ class EmergencyQueueRepository(
             )
 
         dao.insertEvent(queuedEvent)
+        scheduleSync()
     }
 }
