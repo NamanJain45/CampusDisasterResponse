@@ -30,9 +30,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.vjti.campusdisasterresponse.network.AuthLoginResult
 import com.vjti.campusdisasterresponse.network.AuthSessionStore
+import com.vjti.campusdisasterresponse.network.AuthTokenReader
 import com.vjti.campusdisasterresponse.network.BackendAuthClient
 import com.vjti.campusdisasterresponse.worker.SyncScheduler
 import kotlinx.coroutines.launch
+
+private const val MVP_STUDENT_NAME = "Test Student"
+private const val MVP_STUDENT_EMAIL = "student@campus.test"
+private const val MVP_STUDENT_PASSWORD = "student123"
 
 @Composable
 fun BackendLoginCard(
@@ -45,11 +50,11 @@ fun BackendLoginCard(
     val sessionStore = remember(context) { AuthSessionStore(context) }
     val authClient = remember { BackendAuthClient() }
 
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf(MVP_STUDENT_EMAIL) }
+    var password by rememberSaveable { mutableStateOf(MVP_STUDENT_PASSWORD) }
     var isLoading by remember { mutableStateOf(false) }
     var message by rememberSaveable {
-        mutableStateOf("Sign in to access your campus dashboard")
+        mutableStateOf("Use the MVP student account or enter another account")
     }
 
     Box(
@@ -101,10 +106,19 @@ fun BackendLoginCard(
                                 message = "Signing in..."
                                 when (val result = authClient.login(email.trim(), password)) {
                                     is AuthLoginResult.Success -> {
-                                        sessionStore.saveToken(result.token)
-                                        password = ""
-                                        SyncScheduler.scheduleSync(context)
-                                        onSignedIn()
+                                        val user = AuthTokenReader.readUser(
+                                            token = result.token,
+                                            fallbackEmail = email.trim(),
+                                            fallbackName = if (email.trim() == MVP_STUDENT_EMAIL) MVP_STUDENT_NAME else "Campus User"
+                                        )
+                                        if (user == null) {
+                                            message = "Unable to read account role from session"
+                                        } else {
+                                            sessionStore.saveSession(user, result.token)
+                                            password = ""
+                                            SyncScheduler.scheduleSync(context)
+                                            onSignedIn()
+                                        }
                                     }
                                     is AuthLoginResult.Failure -> message = result.message
                                 }
@@ -116,6 +130,12 @@ fun BackendLoginCard(
                     ) {
                         if (isLoading) CircularProgressIndicator() else Text("SIGN IN")
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "MVP test: $MVP_STUDENT_EMAIL / $MVP_STUDENT_PASSWORD",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
 
