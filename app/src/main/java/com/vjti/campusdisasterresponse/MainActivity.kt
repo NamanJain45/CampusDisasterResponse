@@ -67,18 +67,6 @@ fun MainApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
-    val appStateRepository = remember(context) {
-        AppStateRepository(
-            AppDatabase
-                .getDatabase(context)
-                .disasterDao()
-        )
-    }
-
-    val appViewModel: AppViewModel = viewModel(
-        factory = AppViewModelFactory(appStateRepository)
-    )
-
     val queueRepository = remember(context) {
         EmergencyQueueRepository(
             dao = AppDatabase
@@ -89,6 +77,19 @@ fun MainApp() {
             }
         )
     }
+
+    val appStateRepository = remember(context) {
+        AppStateRepository(
+            dao = AppDatabase
+                .getDatabase(context)
+                .disasterDao(),
+            queueRepository = queueRepository
+        )
+    }
+
+    val appViewModel: AppViewModel = viewModel(
+        factory = AppViewModelFactory(appStateRepository)
+    )
 
     val sosViewModel: SosViewModel = viewModel(
         factory = SosViewModelFactory(queueRepository)

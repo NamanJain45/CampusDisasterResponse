@@ -83,5 +83,13 @@ class AppViewModel(
                 globalAlerts = emptyList()
             )
         }
+
+        val repo = repository ?: return
+
+        viewModelScope.launch {
+            repo.saveUserStatus(
+                UserStatus.UNKNOWN
+            )
+        }
     }
 }
