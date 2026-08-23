@@ -24,7 +24,8 @@ import com.vjti.campusdisasterresponse.sos.ui.SosViewModel
 @Composable
 fun EmergencyResponseScreen(
     appViewModel: AppViewModel,
-    sosViewModel: SosViewModel
+    sosViewModel: SosViewModel,
+    onOpenCampusMap: () -> Unit
 ) {
     val appState by appViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -69,9 +70,8 @@ fun EmergencyResponseScreen(
         )
 
         Button(
-            onClick = {
-                // Open Blueprint Map
-            },
+            onClick =
+                onOpenCampusMap,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp),
@@ -80,7 +80,7 @@ fun EmergencyResponseScreen(
             )
         ) {
             Text(
-                text = "VIEW SAFE ROUTE MAP",
+                text = "VIEW CAMPUS LAYOUT",
                 fontSize = 18.sp,
                 color = Color.White
             )

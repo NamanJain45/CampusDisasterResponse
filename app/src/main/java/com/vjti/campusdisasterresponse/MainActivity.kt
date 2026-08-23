@@ -43,6 +43,7 @@ import com.vjti.campusdisasterresponse.ui.education.EducationDashboardScreen
 import com.vjti.campusdisasterresponse.ui.admin.SafetyAuditScreen
 import com.vjti.campusdisasterresponse.ui.response.EmergencyResponseScreen
 import com.vjti.campusdisasterresponse.ui.auth.BackendLoginCard
+import com.vjti.campusdisasterresponse.ui.map.CampusEvacuationMapScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,6 +55,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+const val CAMPUS_MAP_ROUTE = "campus_map"
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
@@ -101,13 +104,17 @@ fun MainApp() {
         Screen.Admin
     )
 
+    val navBackStackEntry by
+        navController.currentBackStackEntryAsState()
+
+    val currentRoute =
+        navBackStackEntry?.destination?.route
+
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
-
-                items.forEach { screen ->
+            if (currentRoute != CAMPUS_MAP_ROUTE) {
+                NavigationBar {
+                    items.forEach { screen ->
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.title) },
                         label = { Text(screen.title) },
@@ -122,6 +129,7 @@ fun MainApp() {
                             }
                         }
                     )
+                    }
                 }
             }
         }
@@ -133,7 +141,26 @@ fun MainApp() {
         ) {
             composable(Screen.Home.route) { HomeScreen(appViewModel) }
             composable(Screen.Education.route) { EducationScreen() }
-            composable(Screen.Response.route) { ResponseScreen(appViewModel, sosViewModel) }
+            composable(Screen.Response.route) {
+                ResponseScreen(
+                    appViewModel = appViewModel,
+                    sosViewModel = sosViewModel,
+                    onOpenCampusMap = {
+                        navController.navigate(
+                            CAMPUS_MAP_ROUTE
+                        )
+                    }
+                )
+            }
+
+            composable(CAMPUS_MAP_ROUTE) {
+                CampusEvacuationMapScreen(
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
             composable(Screen.Admin.route) { AdminScreen() }
         }
     }
@@ -159,9 +186,15 @@ fun EducationScreen() {
 @Composable
 fun ResponseScreen(
     appViewModel: AppViewModel,
-    sosViewModel: SosViewModel
+    sosViewModel: SosViewModel,
+    onOpenCampusMap: () -> Unit
 ) {
-    EmergencyResponseScreen(appViewModel, sosViewModel)
+    EmergencyResponseScreen(
+        appViewModel = appViewModel,
+        sosViewModel = sosViewModel,
+        onOpenCampusMap =
+            onOpenCampusMap
+    )
 }
 
 @Composable
