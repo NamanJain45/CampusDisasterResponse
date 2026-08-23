@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.dp
 fun ManagementDashboardScreen(
     name: String,
     role: String,
-    onOpenUserManagement: () -> Unit
+    onOpenUserManagement: () -> Unit,
+    onLogout: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(20.dp),
@@ -38,5 +39,9 @@ fun ManagementDashboardScreen(
         }
 
         Text("Emergency reports, alerts, SOS monitoring and safety audit will be added to this management dashboard next.")
+
+        Button(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+            Text("LOG OUT")
+        }
     }
 }
