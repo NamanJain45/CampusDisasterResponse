@@ -18,7 +18,7 @@
     "@types/node": "^26.2.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.9.1",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
     "typescript": "^7.0.2"
   },
   "name": "campus-disaster-backend",
@@ -26,12 +26,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/server.ts",
+    "dev": "nodemon --exec tsx src/server.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts"
   },
   "keywords": [],
   "type": "commonjs"
