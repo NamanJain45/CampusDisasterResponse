@@ -1,6 +1,6 @@
-import {
+import type {
   SafetyStatus
-} from "@prisma/client";
+} from "../generated/prisma/enums";
 
 import { prisma } from "../config/db";
 
@@ -35,7 +35,7 @@ export async function processSync(
         }
       });
 
-    if (existing) {
+    if (existing?.success) {
       processedActions.push(
         action.clientActionId
       );
@@ -147,8 +147,19 @@ export async function processSync(
         });
       }
 
-      await prisma.syncLog.create({
-        data: {
+      await prisma.syncLog.upsert({
+        where: {
+          clientActionId:
+            action.clientActionId
+        },
+        update: {
+          userId,
+          actionType:
+            action.type,
+          success: true,
+          errorMessage: null
+        },
+        create: {
           userId,
           clientActionId:
             action.clientActionId,
@@ -164,8 +175,25 @@ export async function processSync(
 
     } catch (error) {
 
-      await prisma.syncLog.create({
-        data: {
+      await prisma.syncLog.upsert({
+        where: {
+          clientActionId:
+            action.clientActionId
+        },
+        update: {
+          userId,
+
+          actionType:
+            action.type,
+
+          success: false,
+
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "Unknown sync error"
+        },
+        create: {
           userId,
 
           clientActionId:
