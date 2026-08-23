@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.vjti.campusdisasterresponse.ui.education.EducationDashboardScreen
+import com.vjti.campusdisasterresponse.ui.admin.SafetyAuditScreen
 import com.vjti.campusdisasterresponse.ui.response.EmergencyResponseScreen
 
 class MainActivity : ComponentActivity() {
@@ -113,7 +114,7 @@ fun ResponseScreen() {
 
 @Composable
 fun AdminScreen() {
-    CenteredText(text = "Admin Section")
+    SafetyAuditScreen()
 }
 
 @Composable
