@@ -275,12 +275,15 @@ class BitChatMeshActivity : ComponentActivity() {
             return
         }
 
-        val message =
-            "Trapped in room - ${Build.MODEL}"
+        val packet =
+            MeshPacket(
+                type = MeshMessageType.SOS,
+                status = "TRAPPED"
+            )
 
         val payload =
             Payload.fromBytes(
-                message.toByteArray()
+                MeshPacketCodec.encode(packet)
             )
 
         Nearby
