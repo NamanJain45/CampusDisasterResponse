@@ -43,11 +43,20 @@ class BitChatMeshActivity : ComponentActivity() {
             ) {
                 payload.asBytes()?.let { bytes ->
 
-                    val message =
-                        String(bytes)
+                    val packet =
+                        MeshPacketCodec.decode(bytes)
+
+                    if (packet == null) {
+                        logMessage(
+                            "Ignored invalid mesh packet from $endpointId"
+                        )
+
+                        return@let
+                    }
 
                     logMessage(
-                        "🚨 SOS Received from $endpointId: $message"
+                        "🚨 ${packet.type.name} from $endpointId: ${packet.status} " +
+                            "[${packet.messageId}] TTL=${packet.ttl}"
                     )
                 }
             }
