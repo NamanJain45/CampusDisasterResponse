@@ -139,11 +139,7 @@ fun MainApp() {
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = initialRoute,
-            modifier = Modifier.padding(innerPadding)
-        ) {
+        NavHost(navController = navController, startDestination = initialRoute, modifier = Modifier.padding(innerPadding)) {
             composable(START_ROUTE) {
                 StartScreen(
                     onSignedIn = {
@@ -156,9 +152,7 @@ fun MainApp() {
                 )
             }
             composable(SOS_ROUTE) { SosOnlyScreen(sosViewModel) }
-            composable(STUDENT_HOME_ROUTE) {
-                StudentHomeScreen(sessionStore.getUserName() ?: "Student", logout)
-            }
+            composable(STUDENT_HOME_ROUTE) { StudentHomeScreen(sessionStore.getUserName() ?: "Student", logout) }
             composable(Screen.Education.route) { EducationScreen() }
             composable(Screen.Response.route) {
                 ResponseScreen(appViewModel, sosViewModel) { navController.navigate(CAMPUS_MAP_ROUTE) }
@@ -168,7 +162,8 @@ fun MainApp() {
                 ManagementDashboardScreen(
                     name = sessionStore.getUserName() ?: "Staff",
                     role = savedRole ?: "STAFF",
-                    onOpenUserManagement = { navController.navigate(USER_MANAGEMENT_ROUTE) }
+                    onOpenUserManagement = { navController.navigate(USER_MANAGEMENT_ROUTE) },
+                    onLogout = logout
                 )
             }
             composable(USER_MANAGEMENT_ROUTE) {
@@ -180,11 +175,7 @@ fun MainApp() {
 
 @Composable
 fun StartScreen(onSignedIn: () -> Unit, onEmergencySos: () -> Unit) {
-    BackendLoginCard(
-        statusText = "Campus Disaster Response",
-        onSignedIn = onSignedIn,
-        onEmergencySos = onEmergencySos
-    )
+    BackendLoginCard("Campus Disaster Response", onSignedIn, onEmergencySos)
 }
 
 @Composable
@@ -201,7 +192,7 @@ fun EducationScreen() { EducationDashboardScreen() }
 
 @Composable
 fun ResponseScreen(appViewModel: AppViewModel, sosViewModel: SosViewModel, onOpenCampusMap: () -> Unit) {
-    EmergencyResponseScreen(appViewModel = appViewModel, sosViewModel = sosViewModel, onOpenCampusMap = onOpenCampusMap)
+    EmergencyResponseScreen(appViewModel, sosViewModel, onOpenCampusMap)
 }
 
 @Composable
