@@ -65,7 +65,7 @@ export async function reviewReport(req: AuthenticatedRequest, res: Response): Pr
     return;
   }
 
-  const { id } = req.params;
+  const reportId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { status, reviewNote } = req.body;
   const allowed = ["VERIFIED", "REJECTED", "ACTIVE", "RESOLVED"];
 
@@ -75,7 +75,7 @@ export async function reviewReport(req: AuthenticatedRequest, res: Response): Pr
   }
 
   const report = await prisma.emergencyReport.update({
-    where: { id },
+    where: { id: reportId },
     data: {
       status,
       reviewedById: req.user.id,
