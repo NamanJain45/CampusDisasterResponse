@@ -9,6 +9,7 @@ import sosRoutes from "./routes/sos.routes";
 import statusRoutes from "./routes/status.routes";
 import syncRoutes from "./routes/sync.routes";
 import userRoutes from "./routes/user.routes";
+import reportRoutes from "./routes/report.routes";
 
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 
@@ -29,6 +30,7 @@ app.use("/api/v1/sos", sosRoutes);
 app.use("/api/v1/locations", locationRoutes);
 app.use("/api/v1/sync", syncRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/reports", reportRoutes);
 
 app.use(errorHandler);
 
