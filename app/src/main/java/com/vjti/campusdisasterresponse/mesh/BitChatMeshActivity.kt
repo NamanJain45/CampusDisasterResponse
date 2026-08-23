@@ -8,6 +8,12 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.lifecycleScope
+import com.vjti.campusdisasterresponse.data.local.AppDatabase
+import com.vjti.campusdisasterresponse.data.queue.EmergencyEvent
+import com.vjti.campusdisasterresponse.data.queue.EmergencyQueueRepository
+import com.vjti.campusdisasterresponse.worker.SyncScheduler
+import kotlinx.coroutines.launch
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
 import com.google.android.gms.nearby.connection.ConnectionInfo
@@ -34,6 +40,17 @@ class BitChatMeshActivity : ComponentActivity() {
 
     private val seenMessageIds =
         mutableSetOf<String>()
+
+    private val queueRepository by lazy {
+        EmergencyQueueRepository(
+            dao = AppDatabase
+                .getDatabase(this)
+                .emergencyEventDao(),
+            scheduleSync = {
+                SyncScheduler.scheduleSync(this)
+            }
+        )
+    }
 
     private var meshStarted = false
 
@@ -63,6 +80,28 @@ class BitChatMeshActivity : ComponentActivity() {
                         )
 
                         return@let
+                    }
+
+                    lifecycleScope.launch {
+                        try {
+                            queueRepository.enqueue(
+                                EmergencyEvent(
+                                    id = packet.messageId,
+                                    timestamp = packet.timestamp,
+                                    eventType = packet.type.name,
+                                    payload =
+                                        """{"messageId":"${packet.messageId}","type":"${packet.type.name}","status":"${packet.status}","timestamp":${packet.timestamp},"ttl":${packet.ttl}}"""
+                                )
+                            )
+
+                            logMessage(
+                                "Persisted mesh packet ${packet.messageId}"
+                            )
+                        } catch (error: Exception) {
+                            logMessage(
+                                "Mesh persistence failed: ${error.message}"
+                            )
+                        }
                     }
 
                     logMessage(
