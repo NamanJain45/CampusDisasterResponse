@@ -11,10 +11,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vjti.campusdisasterresponse.state.AppViewModel
+import com.vjti.campusdisasterresponse.state.UserStatus
 
 @Composable
-fun EmergencyResponseScreen() {
-    var userStatus by remember { mutableStateOf("Unknown") }
+fun EmergencyResponseScreen(
+    appViewModel: AppViewModel
+) {
+    val appState by appViewModel.uiState.collectAsState()
     var sosActive by remember { mutableStateOf(false) }
 
     Column(
@@ -91,26 +95,26 @@ fun EmergencyResponseScreen() {
                 text = "Safe",
                 color = Color(0xFF1B5E20)
             ) {
-                userStatus = "Safe"
+                appViewModel.updateUserStatus(UserStatus.SAFE)
             }
 
             StatusButton(
                 text = "Trapped",
                 color = Color(0xFFE65100)
             ) {
-                userStatus = "Trapped"
+                appViewModel.updateUserStatus(UserStatus.TRAPPED)
             }
 
             StatusButton(
                 text = "Need Aid",
                 color = Color(0xFFB71C1C)
             ) {
-                userStatus = "Need First Aid"
+                appViewModel.updateUserStatus(UserStatus.NEED_FIRST_AID)
             }
         }
 
         Text(
-            text = "Current Status: $userStatus",
+            text = "Current Status: ${appState.userStatus.name}",
             color = Color.White,
             modifier = Modifier.padding(bottom = 24.dp)
         )

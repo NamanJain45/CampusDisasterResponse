@@ -55,6 +55,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 @Composable
 fun MainApp() {
     val navController = rememberNavController()
+    val appViewModel: AppViewModel = viewModel()
     val items = listOf(
         Screen.Home,
         Screen.Education,
@@ -92,9 +93,9 @@ fun MainApp() {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeScreen() }
+            composable(Screen.Home.route) { HomeScreen(appViewModel) }
             composable(Screen.Education.route) { EducationScreen() }
-            composable(Screen.Response.route) { ResponseScreen() }
+            composable(Screen.Response.route) { ResponseScreen(appViewModel) }
             composable(Screen.Admin.route) { AdminScreen() }
         }
     }
@@ -102,7 +103,7 @@ fun MainApp() {
 
 @Composable
 fun HomeScreen(
-    appViewModel: AppViewModel = viewModel()
+    appViewModel: AppViewModel
 ) {
     val appState by appViewModel.uiState.collectAsState()
 
@@ -117,8 +118,10 @@ fun EducationScreen() {
 }
 
 @Composable
-fun ResponseScreen() {
-    EmergencyResponseScreen()
+fun ResponseScreen(
+    appViewModel: AppViewModel
+) {
+    EmergencyResponseScreen(appViewModel)
 }
 
 @Composable
