@@ -301,6 +301,8 @@ class BitChatMeshActivity : ComponentActivity() {
                 status = "TRAPPED"
             )
 
+        seenMessageIds.add(packet.messageId)
+
         val payload =
             Payload.fromBytes(
                 MeshPacketCodec.encode(packet)
