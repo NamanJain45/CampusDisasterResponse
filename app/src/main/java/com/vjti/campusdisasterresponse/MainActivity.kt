@@ -19,6 +19,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.vjti.campusdisasterresponse.state.AppViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -98,8 +101,14 @@ fun MainApp() {
 }
 
 @Composable
-fun HomeScreen() {
-    CenteredText(text = "Home Section")
+fun HomeScreen(
+    appViewModel: AppViewModel = viewModel()
+) {
+    val appState by appViewModel.uiState.collectAsState()
+
+    CenteredText(
+        text = "Mode: ${appState.mode.name}\nStatus: ${appState.userStatus.name}"
+    )
 }
 
 @Composable
