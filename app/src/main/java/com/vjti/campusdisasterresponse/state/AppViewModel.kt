@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class AppMode { EDUCATION, RESPONSE }
-enum class UserStatus { SAFE, TRAPPED, NEED_FIRST_AID, UNKNOWN }
+enum class UserStatus { UNKNOWN, SAFE, TRAPPED, NEED_FIRST_AID, NEED_ASSISTANCE }
 
 data class EmergencyInfo(
     val type: String,

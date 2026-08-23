@@ -22,9 +22,10 @@ enum EmergencySeverity {
 }
 
 enum SafetyStatus {
+  UNKNOWN
   SAFE
   TRAPPED
-  INJURED
+  NEED_FIRST_AID
   NEED_ASSISTANCE
 }
 
