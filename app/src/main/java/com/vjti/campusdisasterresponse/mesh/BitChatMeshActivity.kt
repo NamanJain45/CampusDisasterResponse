@@ -278,7 +278,10 @@ class BitChatMeshActivity : ComponentActivity() {
             R.id.btnSos
         ).setOnClickListener {
 
-            broadcastSos()
+            broadcastMeshStatus(
+                type = MeshMessageType.SOS,
+                status = "TRAPPED"
+            )
         }
 
         logMessage(
@@ -363,13 +366,16 @@ class BitChatMeshActivity : ComponentActivity() {
             }
     }
 
-    private fun broadcastSos() {
+    private fun broadcastMeshStatus(
+        type: MeshMessageType,
+        status: String
+    ) {
 
         if (
             connectedEndpoints.isEmpty()
         ) {
             logMessage(
-                "No peers connected. Cannot send SOS."
+                "No peers connected. Cannot broadcast $status."
             )
 
             return
@@ -377,8 +383,8 @@ class BitChatMeshActivity : ComponentActivity() {
 
         val packet =
             MeshPacket(
-                type = MeshMessageType.SOS,
-                status = "TRAPPED"
+                type = type,
+                status = status
             )
 
         seenMessageIds.add(packet.messageId)
@@ -405,7 +411,7 @@ class BitChatMeshActivity : ComponentActivity() {
             .addOnFailureListener { error ->
 
                 logMessage(
-                    "SOS transmission failed: ${error.message}"
+                    "Mesh transmission failed: ${error.message}"
                 )
             }
     }
