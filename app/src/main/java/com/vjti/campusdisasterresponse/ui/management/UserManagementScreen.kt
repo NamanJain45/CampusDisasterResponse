@@ -31,10 +31,7 @@ import com.vjti.campusdisasterresponse.network.UserManagementClient
 import kotlinx.coroutines.launch
 
 @Composable
-fun UserManagementScreen(
-    sessionStore: AuthSessionStore,
-    role: String
-) {
+fun UserManagementScreen(sessionStore: AuthSessionStore, role: String) {
     val scope = rememberCoroutineScope()
     val client = remember { UserManagementClient() }
     var users by remember { mutableStateOf<List<ManagedUser>>(emptyList()) }
@@ -49,11 +46,7 @@ fun UserManagementScreen(
         }
         scope.launch {
             client.listUsers(token).fold(
-                onSuccess = {
-                    @Suppress("UNCHECKED_CAST")
-                    users = it as List<ManagedUser>
-                    message = ""
-                },
+                onSuccess = { users = it; message = "" },
                 onFailure = { message = it.message ?: "Unable to load users" }
             )
         }
@@ -69,7 +62,6 @@ fun UserManagementScreen(
         Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth()) {
             Text("+ ADD STUDENT")
         }
-
         if (role == "ADMIN") {
             Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 Text("+ ADD STAFF")
@@ -79,7 +71,10 @@ fun UserManagementScreen(
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 16.dp)) {
             items(users) { user ->
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(user.name)
                             Text(user.email)
@@ -94,9 +89,7 @@ fun UserManagementScreen(
                                         onFailure = { message = it.message ?: "Unable to remove user" }
                                     )
                                 }
-                            }) {
-                                Text("REMOVE")
-                            }
+                            }) { Text("REMOVE") }
                         }
                     }
                 }
@@ -108,10 +101,7 @@ fun UserManagementScreen(
         CreateUserDialog(
             allowStaff = role == "ADMIN",
             onDismiss = { showDialog = false },
-            onCreated = {
-                showDialog = false
-                refresh()
-            },
+            onCreated = { showDialog = false; refresh() },
             sessionStore = sessionStore,
             client = client
         )
