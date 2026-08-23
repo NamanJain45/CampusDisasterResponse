@@ -19,7 +19,13 @@ class EmergencyQueueRepository(
                     """{"id":"${event.id}","timestamp":${event.timestamp},"type":"${event.type}"}"""
             )
 
-        dao.insertEvent(queuedEvent)
+        enqueue(queuedEvent)
+    }
+
+    suspend fun enqueue(
+        event: EmergencyEvent
+    ) {
+        dao.insertEvent(event)
         scheduleSync()
     }
 }
