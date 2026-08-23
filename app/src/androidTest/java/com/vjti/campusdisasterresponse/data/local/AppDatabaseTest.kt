@@ -6,6 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vjti.campusdisasterresponse.data.local.dao.DisasterDao
 import com.vjti.campusdisasterresponse.data.local.entity.UserStatus
+import com.vjti.campusdisasterresponse.data.queue.EmergencyEvent
+import com.vjti.campusdisasterresponse.data.queue.SyncState
 import java.io.IOException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -61,4 +63,29 @@ class AppDatabaseTest {
             retrieved?.status
         )
     }
+
+    @Test
+    fun writeAndReadQueuedEmergencyEvent() = runBlocking {
+
+        val queueDao = db.emergencyEventDao()
+
+        val event = EmergencyEvent(
+            eventType = "SOS_DISTRESS_SIGNAL",
+            payload = """{"type":"SOS_DISTRESS_SIGNAL"}"""
+        )
+
+        queueDao.insertEvent(event)
+        queueDao.markPendingAsSyncing()
+
+        val queuedEvents =
+            queueDao.getEventsToSync()
+
+        assertEquals(1, queuedEvents.size)
+        assertEquals(event.id, queuedEvents.first().id)
+        assertEquals(
+            SyncState.SYNCING,
+            queuedEvents.first().syncState
+        )
+    }
+
 }

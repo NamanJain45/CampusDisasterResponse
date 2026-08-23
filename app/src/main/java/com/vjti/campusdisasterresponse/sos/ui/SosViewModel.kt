@@ -1,10 +1,13 @@
 package com.vjti.campusdisasterresponse.sos.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.vjti.campusdisasterresponse.data.queue.EmergencyQueueRepository
 import com.vjti.campusdisasterresponse.sos.model.EmergencyEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 sealed interface SosUiState {
     object Idle : SosUiState
@@ -12,7 +15,9 @@ sealed interface SosUiState {
     data class Triggered(val event: EmergencyEvent) : SosUiState
 }
 
-class SosViewModel : ViewModel() {
+class SosViewModel(
+    private val queueRepository: EmergencyQueueRepository? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SosUiState>(SosUiState.Idle)
     val uiState: StateFlow<SosUiState> = _uiState.asStateFlow()
@@ -28,6 +33,12 @@ class SosViewModel : ViewModel() {
     fun triggerEmergency() {
         val event = EmergencyEvent()
         _uiState.value = SosUiState.Triggered(event)
+
+        val repository = queueRepository ?: return
+
+        viewModelScope.launch {
+            repository.enqueueSos(event)
+        }
     }
 
     fun cancelHold() {

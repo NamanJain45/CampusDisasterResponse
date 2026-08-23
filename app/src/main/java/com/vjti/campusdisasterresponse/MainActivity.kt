@@ -20,9 +20,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vjti.campusdisasterresponse.state.AppViewModel
 import com.vjti.campusdisasterresponse.sos.ui.SosViewModel
+import com.vjti.campusdisasterresponse.sos.ui.SosViewModelFactory
+import com.vjti.campusdisasterresponse.data.local.AppDatabase
+import com.vjti.campusdisasterresponse.data.queue.EmergencyQueueRepository
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,8 +61,20 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 @Composable
 fun MainApp() {
     val navController = rememberNavController()
+    val context = LocalContext.current
     val appViewModel: AppViewModel = viewModel()
-    val sosViewModel: SosViewModel = viewModel()
+
+    val queueRepository = remember(context) {
+        EmergencyQueueRepository(
+            AppDatabase
+                .getDatabase(context)
+                .emergencyEventDao()
+        )
+    }
+
+    val sosViewModel: SosViewModel = viewModel(
+        factory = SosViewModelFactory(queueRepository)
+    )
     val items = listOf(
         Screen.Home,
         Screen.Education,
