@@ -69,6 +69,47 @@ class BitChatMeshActivity : ComponentActivity() {
                         "🚨 ${packet.type.name} from $endpointId: ${packet.status} " +
                             "[${packet.messageId}] TTL=${packet.ttl}"
                     )
+
+                    if (packet.ttl <= 0) {
+                        return@let
+                    }
+
+                    val relayTargets =
+                        connectedEndpoints.filter { it != endpointId }
+
+                    if (relayTargets.isEmpty()) {
+                        return@let
+                    }
+
+                    val relayedPacket =
+                        packet.copy(
+                            ttl = packet.ttl - 1
+                        )
+
+                    val relayPayload =
+                        Payload.fromBytes(
+                            MeshPacketCodec.encode(relayedPacket)
+                        )
+
+                    Nearby
+                        .getConnectionsClient(
+                            this@BitChatMeshActivity
+                        )
+                        .sendPayload(
+                            relayTargets,
+                            relayPayload
+                        )
+                        .addOnSuccessListener {
+                            logMessage(
+                                "Relayed ${packet.messageId} to ${relayTargets.size} peers " +
+                                    "with TTL=${relayedPacket.ttl}"
+                            )
+                        }
+                        .addOnFailureListener { error ->
+                            logMessage(
+                                "Mesh relay failed: ${error.message}"
+                            )
+                        }
                 }
             }
 
