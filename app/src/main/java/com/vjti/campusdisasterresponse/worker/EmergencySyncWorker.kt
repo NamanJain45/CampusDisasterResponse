@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.vjti.campusdisasterresponse.data.local.AppDatabase
-import com.vjti.campusdisasterresponse.data.queue.EmergencyEvent
+import com.vjti.campusdisasterresponse.network.AuthSessionStore
+import com.vjti.campusdisasterresponse.network.EmergencySyncClient
+import com.vjti.campusdisasterresponse.network.SyncTransmissionResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -16,9 +18,23 @@ class EmergencySyncWorker(
     override suspend fun doWork(): Result =
         withContext(Dispatchers.IO) {
 
+            val sessionStore =
+                AuthSessionStore(
+                    applicationContext
+                )
+
+            val token =
+                sessionStore.getToken()
+
+            if (token.isNullOrBlank()) {
+                return@withContext Result.success()
+            }
+
             val dao =
                 AppDatabase
-                    .getDatabase(applicationContext)
+                    .getDatabase(
+                        applicationContext
+                    )
                     .emergencyEventDao()
 
             dao.markPendingAsSyncing()
@@ -30,23 +46,44 @@ class EmergencySyncWorker(
                 return@withContext Result.success()
             }
 
+            val syncClient =
+                EmergencySyncClient()
+
             var hasFailure = false
 
             for (event in eventsToSync) {
 
-                val isTransmitted =
-                    transmitEvent(event)
-
-                if (isTransmitted) {
-                    dao.markAsSynced(
-                        listOf(event.id)
+                when (
+                    syncClient.syncEvent(
+                        event,
+                        token
                     )
-                } else {
-                    dao.markAsFailed(
-                        listOf(event.id)
-                    )
+                ) {
+                    SyncTransmissionResult.SUCCESS -> {
+                        dao.markAsSynced(
+                            listOf(event.id)
+                        )
+                    }
 
-                    hasFailure = true
+                    SyncTransmissionResult.AUTH_REQUIRED -> {
+                        sessionStore.clearToken()
+
+                        dao.resetToPending(
+                            eventsToSync.map {
+                                it.id
+                            }
+                        )
+
+                        return@withContext Result.success()
+                    }
+
+                    SyncTransmissionResult.FAILURE -> {
+                        dao.markAsFailed(
+                            listOf(event.id)
+                        )
+
+                        hasFailure = true
+                    }
                 }
             }
 
@@ -56,16 +93,4 @@ class EmergencySyncWorker(
                 Result.success()
             }
         }
-
-    private suspend fun transmitEvent(
-        event: EmergencyEvent
-    ): Boolean {
-
-        return try {
-            // Replace with real backend transmission later.
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
 }

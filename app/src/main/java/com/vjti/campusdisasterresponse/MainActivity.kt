@@ -42,6 +42,7 @@ import androidx.navigation.compose.rememberNavController
 import com.vjti.campusdisasterresponse.ui.education.EducationDashboardScreen
 import com.vjti.campusdisasterresponse.ui.admin.SafetyAuditScreen
 import com.vjti.campusdisasterresponse.ui.response.EmergencyResponseScreen
+import com.vjti.campusdisasterresponse.ui.auth.BackendLoginCard
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -143,8 +144,9 @@ fun HomeScreen(
 ) {
     val appState by appViewModel.uiState.collectAsState()
 
-    CenteredText(
-        text = "Mode: ${appState.mode.name}\nStatus: ${appState.userStatus.name}"
+    BackendLoginCard(
+        statusText =
+            "Mode: ${appState.mode.name}\nStatus: ${appState.userStatus.name}"
     )
 }
 

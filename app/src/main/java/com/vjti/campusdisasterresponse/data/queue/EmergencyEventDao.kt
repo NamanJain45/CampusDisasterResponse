@@ -47,6 +47,19 @@ interface EmergencyEventDao {
     @Query(
         """
         UPDATE queued_emergency_events
+        SET syncState = 'PENDING'
+        WHERE id IN (:eventIds)
+        AND syncState = 'SYNCING'
+        """
+    )
+    suspend fun resetToPending(
+        eventIds: List<String>
+    )
+
+
+    @Query(
+        """
+        UPDATE queued_emergency_events
         SET syncState = 'FAILED',
             retryCount = retryCount + 1
         WHERE id IN (:eventIds)
