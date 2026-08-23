@@ -1,5 +1,6 @@
 package com.vjti.campusdisasterresponse.ui.response
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,10 +8,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vjti.campusdisasterresponse.mesh.BitChatMeshActivity
 import com.vjti.campusdisasterresponse.state.AppViewModel
 import com.vjti.campusdisasterresponse.state.UserStatus
 import com.vjti.campusdisasterresponse.sos.ui.SosScreen
@@ -22,6 +25,7 @@ fun EmergencyResponseScreen(
     sosViewModel: SosViewModel
 ) {
     val appState by appViewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -80,6 +84,22 @@ fun EmergencyResponseScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = {
+                context.startActivity(
+                    Intent(
+                        context,
+                        BitChatMeshActivity::class.java
+                    )
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("OPEN OFFLINE MESH")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "BROADCAST STATUS (BITCHAT):",
