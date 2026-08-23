@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vjti.campusdisasterresponse.state.AppViewModel
+import com.vjti.campusdisasterresponse.sos.ui.SosViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,6 +57,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 fun MainApp() {
     val navController = rememberNavController()
     val appViewModel: AppViewModel = viewModel()
+    val sosViewModel: SosViewModel = viewModel()
     val items = listOf(
         Screen.Home,
         Screen.Education,
@@ -95,7 +97,7 @@ fun MainApp() {
         ) {
             composable(Screen.Home.route) { HomeScreen(appViewModel) }
             composable(Screen.Education.route) { EducationScreen() }
-            composable(Screen.Response.route) { ResponseScreen(appViewModel) }
+            composable(Screen.Response.route) { ResponseScreen(appViewModel, sosViewModel) }
             composable(Screen.Admin.route) { AdminScreen() }
         }
     }
@@ -119,9 +121,10 @@ fun EducationScreen() {
 
 @Composable
 fun ResponseScreen(
-    appViewModel: AppViewModel
+    appViewModel: AppViewModel,
+    sosViewModel: SosViewModel
 ) {
-    EmergencyResponseScreen(appViewModel)
+    EmergencyResponseScreen(appViewModel, sosViewModel)
 }
 
 @Composable

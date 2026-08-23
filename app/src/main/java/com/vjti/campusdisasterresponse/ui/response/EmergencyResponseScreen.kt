@@ -13,13 +13,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vjti.campusdisasterresponse.state.AppViewModel
 import com.vjti.campusdisasterresponse.state.UserStatus
+import com.vjti.campusdisasterresponse.sos.ui.SosScreen
+import com.vjti.campusdisasterresponse.sos.ui.SosViewModel
 
 @Composable
 fun EmergencyResponseScreen(
-    appViewModel: AppViewModel
+    appViewModel: AppViewModel,
+    sosViewModel: SosViewModel
 ) {
     val appState by appViewModel.uiState.collectAsState()
-    var sosActive by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -121,37 +123,10 @@ fun EmergencyResponseScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = {
-                sosActive = !sosActive
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (sosActive) {
-                    Color.White
-                } else {
-                    Color.Red
-                }
-            )
-        ) {
-            Text(
-                text = if (sosActive) {
-                    "SOS TRANSMITTING..."
-                } else {
-                    "ACTIVATE SOS"
-                },
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Black,
-                color = if (sosActive) {
-                    Color.Red
-                } else {
-                    Color.White
-                }
-            )
-        }
+        SosScreen(
+            viewModel = sosViewModel,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
