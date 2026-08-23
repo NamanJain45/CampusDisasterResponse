@@ -1,7 +1,8 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  importFileExtension = "ts"
 }
 
 datasource db {
@@ -75,9 +76,9 @@ model SOS {
 
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  syncSequence  Int          @default(autoincrement())
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  syncSequence  Int            @default(autoincrement())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([userId])
   @@index([updatedAt])
@@ -93,9 +94,9 @@ model UserStatus {
 
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  syncSequence  Int           @default(autoincrement())
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  syncSequence  Int            @default(autoincrement())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([userId])
   @@index([updatedAt])
@@ -110,11 +111,11 @@ model Location {
   longitude     Float
   recordedAt    DateTime
 
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  syncSequence  Int          @default(autoincrement())
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  syncSequence  Int            @default(autoincrement())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([userId])
   @@index([updatedAt])
