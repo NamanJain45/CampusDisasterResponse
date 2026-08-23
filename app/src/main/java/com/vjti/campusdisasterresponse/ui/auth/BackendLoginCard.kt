@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,221 +36,97 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun BackendLoginCard(
-    statusText: String
+    statusText: String,
+    onSignedIn: () -> Unit,
+    onEmergencySos: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val sessionStore = remember(context) { AuthSessionStore(context) }
+    val authClient = remember { BackendAuthClient() }
 
-    val sessionStore =
-        remember(context) {
-            AuthSessionStore(context)
-        }
-
-    val authClient =
-        remember {
-            BackendAuthClient()
-        }
-
-    var email by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var password by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var isLoading by remember {
-        mutableStateOf(false)
-    }
-
-    var signedIn by remember {
-        mutableStateOf(
-            !sessionStore
-                .getToken()
-                .isNullOrBlank()
-        )
-    }
-
-    var message by remember {
-        mutableStateOf(
-            if (signedIn) {
-                "Backend session ready"
-            } else {
-                "Sign in to enable server sync"
-            }
-        )
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var message by rememberSaveable {
+        mutableStateOf("Sign in to access your campus dashboard")
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment =
-                Alignment.CenterHorizontally,
-            verticalArrangement =
-                Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = statusText,
-                style =
-                    MaterialTheme
-                        .typography
-                        .headlineSmall
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(24.dp)
-            )
+            Text(statusText, style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Emergency response for your campus")
+            Spacer(modifier = Modifier.height(24.dp))
 
             Card(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                colors =
-                    CardDefaults.cardColors()
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors()
             ) {
-                Column(
-                    modifier =
-                        Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text =
-                            "Backend Connection",
-                        style =
-                            MaterialTheme
-                                .typography
-                                .titleMedium
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(8.dp)
-                    )
-
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Sign In", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(message)
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    if (signedIn) {
-                        Button(
-                            onClick = {
-                                sessionStore
-                                    .clearToken()
-
-                                signedIn = false
-                                message =
-                                    "Signed out"
-                            },
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                "SIGN OUT"
-                            )
-                        }
-                    } else {
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = {
-                                email = it
-                            },
-                            label = {
-                                Text("Email")
-                            },
-                            singleLine = true,
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(8.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = {
-                                password = it
-                            },
-                            label = {
-                                Text("Password")
-                            },
-                            singleLine = true,
-                            visualTransformation =
-                                PasswordVisualTransformation(),
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    isLoading = true
-                                    message =
-                                        "Connecting..."
-
-                                    when (
-                                        val result =
-                                            authClient.login(
-                                                email.trim(),
-                                                password
-                                            )
-                                    ) {
-                                        is AuthLoginResult.Success -> {
-                                            sessionStore
-                                                .saveToken(
-                                                    result.token
-                                                )
-
-                                            signedIn = true
-                                            password = ""
-                                            message =
-                                                "Backend connected"
-
-                                            SyncScheduler
-                                                .scheduleSync(
-                                                    context
-                                                )
-                                        }
-
-                                        is AuthLoginResult.Failure -> {
-                                            message =
-                                                result.message
-                                        }
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                isLoading = true
+                                message = "Signing in..."
+                                when (val result = authClient.login(email.trim(), password)) {
+                                    is AuthLoginResult.Success -> {
+                                        sessionStore.saveToken(result.token)
+                                        password = ""
+                                        SyncScheduler.scheduleSync(context)
+                                        onSignedIn()
                                     }
-
-                                    isLoading = false
+                                    is AuthLoginResult.Failure -> message = result.message
                                 }
-                            },
-                            enabled =
-                                !isLoading &&
-                                    email.isNotBlank() &&
-                                    password.isNotBlank(),
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator()
-                            } else {
-                                Text(
-                                    "SIGN IN"
-                                )
+                                isLoading = false
                             }
-                        }
+                        },
+                        enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isLoading) CircularProgressIndicator() else Text("SIGN IN")
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Emergency? You can send SOS without signing in.")
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onEmergencySos,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("🚨 EMERGENCY SOS")
             }
         }
     }
