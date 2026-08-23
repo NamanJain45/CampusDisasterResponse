@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import bcrypt from "bcrypt";
 
 import { prisma } from "../config/db";
@@ -64,8 +64,9 @@ export async function deleteUser(
   res: Response
 ): Promise<void> {
   const userId = req.params.id;
+  const userIdValue = Array.isArray(userId) ? userId[0] : userId;
 
-  const target = await prisma.user.findUnique({ where: { id: userId } });
+  const target = await prisma.user.findUnique({ where: { id: userIdValue } });
   if (!target) {
     res.status(404).json({ message: "User not found" });
     return;
@@ -81,6 +82,6 @@ export async function deleteUser(
     return;
   }
 
-  await prisma.user.delete({ where: { id: userId } });
+  await prisma.user.delete({ where: { id: userIdValue } });
   res.json({ message: "User removed" });
 }
