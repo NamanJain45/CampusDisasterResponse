@@ -39,7 +39,7 @@ object SyncScheduler {
             .getInstance(context)
             .enqueueUniqueWork(
                 WORK_NAME,
-                ExistingWorkPolicy.KEEP,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 syncRequest
             )
     }
