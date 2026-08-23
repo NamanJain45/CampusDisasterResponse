@@ -24,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vjti.campusdisasterresponse.state.AppViewModel
+import com.vjti.campusdisasterresponse.state.AppViewModelFactory
+import com.vjti.campusdisasterresponse.state.AppStateRepository
 import com.vjti.campusdisasterresponse.sos.ui.SosViewModel
 import com.vjti.campusdisasterresponse.sos.ui.SosViewModelFactory
 import com.vjti.campusdisasterresponse.data.local.AppDatabase
@@ -62,7 +64,18 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 fun MainApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
-    val appViewModel: AppViewModel = viewModel()
+
+    val appStateRepository = remember(context) {
+        AppStateRepository(
+            AppDatabase
+                .getDatabase(context)
+                .disasterDao()
+        )
+    }
+
+    val appViewModel: AppViewModel = viewModel(
+        factory = AppViewModelFactory(appStateRepository)
+    )
 
     val queueRepository = remember(context) {
         EmergencyQueueRepository(

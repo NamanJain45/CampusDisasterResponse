@@ -1,10 +1,12 @@
 package com.vjti.campusdisasterresponse.state
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 enum class AppMode { EDUCATION, RESPONSE }
 enum class UserStatus { SAFE, TRAPPED, NEED_FIRST_AID, UNKNOWN }
@@ -22,9 +24,26 @@ data class AppState(
     val globalAlerts: List<String> = emptyList()
 )
 
-class AppViewModel : ViewModel() {
+class AppViewModel(
+    private val repository: AppStateRepository? = null
+) : ViewModel() {
+
     private val _uiState = MutableStateFlow(AppState())
     val uiState: StateFlow<AppState> = _uiState.asStateFlow()
+
+    init {
+        val repo = repository
+
+        if (repo != null) {
+            viewModelScope.launch {
+                repo.observeUserStatus().collect { status ->
+                    _uiState.update { currentState ->
+                        currentState.copy(userStatus = status)
+                    }
+                }
+            }
+        }
+    }
 
     fun triggerResponseMode(info: EmergencyInfo) {
         _uiState.update { currentState ->
@@ -38,6 +57,12 @@ class AppViewModel : ViewModel() {
     fun updateUserStatus(status: UserStatus) {
         _uiState.update { currentState ->
             currentState.copy(userStatus = status)
+        }
+
+        val repo = repository ?: return
+
+        viewModelScope.launch {
+            repo.saveUserStatus(status)
         }
     }
 
