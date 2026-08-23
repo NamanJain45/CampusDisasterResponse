@@ -32,6 +32,9 @@ class BitChatMeshActivity : ComponentActivity() {
     private val connectedEndpoints =
         mutableSetOf<String>()
 
+    private val seenMessageIds =
+        mutableSetOf<String>()
+
     private var meshStarted = false
 
     private val payloadCallback =
@@ -49,6 +52,14 @@ class BitChatMeshActivity : ComponentActivity() {
                     if (packet == null) {
                         logMessage(
                             "Ignored invalid mesh packet from $endpointId"
+                        )
+
+                        return@let
+                    }
+
+                    if (!seenMessageIds.add(packet.messageId)) {
+                        logMessage(
+                            "Ignored duplicate mesh packet ${packet.messageId}"
                         )
 
                         return@let
