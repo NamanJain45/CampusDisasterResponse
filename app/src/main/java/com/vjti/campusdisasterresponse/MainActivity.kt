@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.vjti.campusdisasterresponse.ui.education.EducationDashboardScreen
+import com.vjti.campusdisasterresponse.ui.response.EmergencyResponseScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,7 +108,7 @@ fun EducationScreen() {
 
 @Composable
 fun ResponseScreen() {
-    CenteredText(text = "Response Section")
+    EmergencyResponseScreen()
 }
 
 @Composable
