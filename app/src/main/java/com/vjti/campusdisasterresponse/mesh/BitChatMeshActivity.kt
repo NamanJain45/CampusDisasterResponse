@@ -275,6 +275,33 @@ class BitChatMeshActivity : ComponentActivity() {
             )
 
         findViewById<Button>(
+            R.id.btnSafe
+        ).setOnClickListener {
+            broadcastMeshStatus(
+                type = MeshMessageType.STATUS_UPDATE,
+                status = "SAFE"
+            )
+        }
+
+        findViewById<Button>(
+            R.id.btnTrapped
+        ).setOnClickListener {
+            broadcastMeshStatus(
+                type = MeshMessageType.STATUS_UPDATE,
+                status = "TRAPPED"
+            )
+        }
+
+        findViewById<Button>(
+            R.id.btnNeedAid
+        ).setOnClickListener {
+            broadcastMeshStatus(
+                type = MeshMessageType.STATUS_UPDATE,
+                status = "NEED_FIRST_AID"
+            )
+        }
+
+        findViewById<Button>(
             R.id.btnSos
         ).setOnClickListener {
 

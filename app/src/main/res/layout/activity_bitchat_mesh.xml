@@ -9,6 +9,29 @@
     android:background="#121212">
 
     <Button
+        android:id="@+id/btnSafe"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Broadcast SAFE"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/btnTrapped"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Broadcast TRAPPED"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/btnNeedAid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Broadcast NEED FIRST AID"
+        android:textStyle="bold" />
+
+    <Button
         android:id="@+id/btnSos"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
