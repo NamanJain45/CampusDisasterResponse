@@ -44,7 +44,6 @@ model User {
   email           String             @unique
   passwordHash    String
   role            UserRole           @default(STUDENT)
-
   statuses        UserStatus[]
   sosEvents       SOS[]
   locations       Location[]
@@ -52,11 +51,9 @@ model User {
   reportsReviewed EmergencyReport[]  @relation("ReportReviewer")
   notifications   Notification[]
   auditActions    AuditLog[]         @relation("AuditActor")
-
   syncSequence    Int                @default(autoincrement())
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
-
   @@index([updatedAt])
   @@index([syncSequence])
   @@index([role])
@@ -69,14 +66,14 @@ model Emergency {
   severity      EmergencySeverity
   active        Boolean            @default(true)
   activatedBy   String?
-
+  sourceReportId String?
   syncSequence  Int                @default(autoincrement())
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
-
   @@index([updatedAt])
   @@index([syncSequence])
   @@index([active])
+  @@index([sourceReportId])
 }
 
 model EmergencyReport {
@@ -92,14 +89,11 @@ model EmergencyReport {
   reviewedById  String?
   reviewedAt    DateTime?
   reviewNote    String?
-
   createdBy     User                 @relation("ReportCreator", fields: [createdById], references: [id], onDelete: Cascade)
   reviewedBy    User?                @relation("ReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-
   syncSequence  Int                  @default(autoincrement())
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
-
   @@index([status])
   @@index([createdById])
   @@index([updatedAt])
@@ -114,13 +108,10 @@ model SOS {
   longitude     Float?
   message       String?
   active        Boolean      @default(true)
-
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  syncSequence  Int                @default(autoincrement())
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-
+  syncSequence  Int           @default(autoincrement())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   @@index([userId])
   @@index([updatedAt])
   @@index([syncSequence])
@@ -132,13 +123,10 @@ model UserStatus {
   userId        String
   status        SafetyStatus
   message       String?
-
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   syncSequence  Int                @default(autoincrement())
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
-
   @@index([userId])
   @@index([updatedAt])
   @@index([syncSequence])
@@ -151,16 +139,12 @@ model Location {
   latitude      Float
   longitude     Float
   recordedAt    DateTime
-
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   syncSequence  Int                @default(autoincrement())
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
-
   @@index([userId])
   @@index([updatedAt])
-  @@index([syncSequence])
 }
 
 model SyncLog {
@@ -170,11 +154,9 @@ model SyncLog {
   actionType      String
   success         Boolean
   errorMessage    String?
-
-  syncSequence    Int                @default(autoincrement())
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
+  syncSequence    Int       @default(autoincrement())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   @@index([updatedAt])
   @@index([syncSequence])
 }
@@ -190,9 +172,7 @@ model Notification {
   readAt         DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@index([userId, readAt, createdAt])
   @@index([relatedType, relatedId])
 }
@@ -205,9 +185,7 @@ model AuditLog {
   entityId    String
   details     String?
   createdAt   DateTime @default(now())
-
   actor       User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
-
   @@index([entityType, entityId, createdAt])
   @@index([actorId, createdAt])
 }
