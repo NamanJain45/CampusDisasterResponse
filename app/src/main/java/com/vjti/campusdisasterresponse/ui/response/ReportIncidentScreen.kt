@@ -28,6 +28,7 @@ private tailrec fun Context.findComponentActivity(): ComponentActivity? = when (
 @Composable
 fun ReportIncidentScreen(token: String, onBack: () -> Unit) {
     val context = LocalContext.current
+    val activity = remember(context) { context.findComponentActivity() }
     var type by remember { mutableStateOf("HAZARD") }
     var location by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf<Double?>(null) }
@@ -41,24 +42,22 @@ fun ReportIncidentScreen(token: String, onBack: () -> Unit) {
     val client = remember { ReportClient() }
     val options = listOf("FIRE", "FLOOD", "STRUCTURAL_DAMAGE", "HAZARD", "MEDICAL", "OTHER")
 
-    fun captureLocation() {
-        val activity = context.findComponentActivity()
-        if (activity == null) {
-            message = "Unable to access the current activity"
-            return
-        }
-        locating = true
-        LocationHandler(activity) { lat, lon, error ->
-            locating = false
-            if (lat != null && lon != null) {
-                latitude = lat
-                longitude = lon
-                location = "${"%.6f".format(lat)}, ${"%.6f".format(lon)}"
-                message = "Location captured automatically"
-            } else {
-                message = error ?: "Could not capture location"
+    val locationHandler = if (activity != null) {
+        remember(activity) {
+            LocationHandler(activity) { lat, lon, error ->
+                locating = false
+                if (lat != null && lon != null) {
+                    latitude = lat
+                    longitude = lon
+                    location = "${"%.6f".format(lat)}, ${"%.6f".format(lon)}"
+                    message = "Location captured automatically"
+                } else {
+                    message = error ?: "Could not capture location"
+                }
             }
-        }.requestLocation()
+        }
+    } else {
+        null
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
@@ -87,7 +86,14 @@ fun ReportIncidentScreen(token: String, onBack: () -> Unit) {
         )
         Spacer(Modifier.height(8.dp))
         OutlinedButton(
-            onClick = { captureLocation() },
+            onClick = {
+                if (locationHandler == null) {
+                    message = "Unable to access the current activity"
+                } else {
+                    locating = true
+                    locationHandler.requestLocation()
+                }
+            },
             enabled = !locating,
             modifier = Modifier.fillMaxWidth()
         ) { Text(if (locating) "GETTING LOCATION..." else "📍 USE MY CURRENT LOCATION") }
