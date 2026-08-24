@@ -21,6 +21,7 @@ import androidx.navigation.compose.*
 import com.vjti.campusdisasterresponse.data.local.AppDatabase
 import com.vjti.campusdisasterresponse.data.queue.EmergencyQueueRepository
 import com.vjti.campusdisasterresponse.network.AuthSessionStore
+import com.vjti.campusdisasterresponse.network.ReportClient
 import com.vjti.campusdisasterresponse.sos.ui.*
 import com.vjti.campusdisasterresponse.state.*
 import com.vjti.campusdisasterresponse.ui.auth.BackendLoginCard
@@ -28,7 +29,9 @@ import com.vjti.campusdisasterresponse.ui.education.EducationDashboardScreen
 import com.vjti.campusdisasterresponse.ui.management.*
 import com.vjti.campusdisasterresponse.ui.map.CampusEvacuationMapScreen
 import com.vjti.campusdisasterresponse.ui.response.EmergencyResponseScreen
+import com.vjti.campusdisasterresponse.ui.response.ReportIncidentScreen
 import com.vjti.campusdisasterresponse.worker.SyncScheduler
+import kotlin.random.Random
 
 class MainActivity : ComponentActivity() { override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { MaterialTheme { MainApp() } } } }
 
@@ -39,6 +42,7 @@ const val STUDENT_HOME_ROUTE="student_home"
 const val MANAGEMENT_HOME_ROUTE="management_home"
 const val USER_MANAGEMENT_ROUTE="user_management"
 const val STUDENT_SAFETY_ROUTE="student_safety"
+const val REPORT_ROUTE="report"
 
 sealed class Screen(val route:String,val title:String,val icon:androidx.compose.ui.graphics.vector.ImageVector) {
     object Home:Screen(STUDENT_HOME_ROUTE,"Home",Icons.Default.Home)
@@ -62,16 +66,17 @@ sealed class Screen(val route:String,val title:String,val icon:androidx.compose.
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute=navBackStackEntry?.destination?.route
     val isManagement=savedRole=="STAFF"||savedRole=="ADMIN"
-    val showNavigation=loggedIn&&currentRoute!=CAMPUS_MAP_ROUTE&&currentRoute!=SOS_ROUTE&&currentRoute!=STUDENT_SAFETY_ROUTE
+    val showNavigation=loggedIn&&currentRoute!=CAMPUS_MAP_ROUTE&&currentRoute!=SOS_ROUTE&&currentRoute!=REPORT_ROUTE&&currentRoute!=STUDENT_SAFETY_ROUTE
     val logout:()->Unit={sessionStore.clearSession();navController.navigate(START_ROUTE){popUpTo(navController.graph.findStartDestination().id){inclusive=true}}}
     Scaffold(bottomBar={if(showNavigation){val items=if(isManagement)listOf(Screen.Management,Screen.Response,Screen.Users)else listOf(Screen.Home,Screen.Education,Screen.Response);NavigationBar{items.forEach{screen->NavigationBarItem(icon={Icon(screen.icon,screen.title)},label={Text(screen.title)},selected=currentRoute==screen.route,onClick={navController.navigate(screen.route){popUpTo(navController.graph.findStartDestination().id){saveState=true};launchSingleTop=true;restoreState=true}})}}}}){innerPadding->
         NavHost(navController,startDestination=initialRoute,modifier=Modifier.padding(innerPadding)) {
             composable(START_ROUTE){StartScreen({val role=sessionStore.getRole();navController.navigate(if(role=="STAFF"||role=="ADMIN")MANAGEMENT_HOME_ROUTE else STUDENT_HOME_ROUTE){popUpTo(START_ROUTE){inclusive=true}}},{navController.navigate(SOS_ROUTE)})}
             composable(SOS_ROUTE){SosScreen(sosViewModel)}
-            composable(STUDENT_HOME_ROUTE){StudentHomeScreen(sessionStore.getUserName()?:"Student",logout)}
+            composable(STUDENT_HOME_ROUTE){StudentHomeScreen(sessionStore.getUserName()?:"Student",logout){navController.navigate(REPORT_ROUTE)}}
             composable(Screen.Education.route){EducationScreen()}
             composable(Screen.Response.route){ResponseScreen(appViewModel,sosViewModel){navController.navigate(CAMPUS_MAP_ROUTE)}}
             composable(CAMPUS_MAP_ROUTE){CampusEvacuationMapScreen{navController.popBackStack()}}
+            composable(REPORT_ROUTE){ReportIncidentScreen(sessionStore.getToken()?:""){navController.popBackStack()}}
             composable(MANAGEMENT_HOME_ROUTE){ManagementDashboardScreen(sessionStore.getUserName()?:"Staff",savedRole?:"STAFF",{navController.navigate(USER_MANAGEMENT_ROUTE)},{navController.navigate(STUDENT_SAFETY_ROUTE)},logout)}
             composable(STUDENT_SAFETY_ROUTE){StudentSafetyScreen(sessionStore.getToken()?:""){navController.popBackStack()}}
             composable(USER_MANAGEMENT_ROUTE){UserManagementScreen(sessionStore,savedRole?:"STAFF")}
@@ -79,8 +84,35 @@ sealed class Screen(val route:String,val title:String,val icon:androidx.compose.
     }
 }
 
+private val safetyTips=listOf(
+    "EARTHQUAKE • Drop, Cover, and Hold On. Stay away from windows.",
+    "FIRE • Use stairs instead of elevators during a fire evacuation.",
+    "FIRE • If you see smoke, stay low and move toward the nearest safe exit.",
+    "EARTHQUAKE • After shaking stops, watch for falling objects and damaged structures.",
+    "FLOOD • Never walk through moving floodwater.",
+    "MEDICAL • Tell responders your exact location when someone needs help.",
+    "EVACUATION • Follow official instructions and don't return until told it is safe.",
+    "GENERAL • Keep your phone charged whenever possible during an emergency.",
+    "GENERAL • Know at least two ways out of every building you regularly use.",
+    "FIRE • If a door feels hot, don't open it. Find another exit.",
+    "EARTHQUAKE • If outside, move away from buildings, poles, and power lines.",
+    "EMERGENCY • If you are safe, update your safety status so responders know.",
+    "EMERGENCY • If you need rescue, give your most accurate location.",
+    "EVACUATION • Don't push during evacuation; move steadily toward safe exits.",
+    "GENERAL • Keep emergency contacts and important information accessible offline."
+)
+
 @Composable fun StartScreen(onSignedIn:()->Unit,onEmergencySos:()->Unit)=BackendLoginCard("Campus Disaster Response",onSignedIn,onEmergencySos)
-@Composable fun StudentHomeScreen(name:String,onLogout:()->Unit){Column(Modifier.fillMaxSize().padding(20.dp),horizontalAlignment=Alignment.CenterHorizontally){Text("Welcome, $name",style=MaterialTheme.typography.headlineMedium);Text("Student dashboard");Button(onClick=onLogout){Text("LOG OUT")}}}
+@Composable fun StudentHomeScreen(name:String,onLogout:()->Unit,onReportIncident:()->Unit){
+    val tip=remember(name){safetyTips[Random.nextInt(safetyTips.size)]}
+    Column(Modifier.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+        Text("Welcome, $name 👋",style=MaterialTheme.typography.headlineMedium)
+        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text("🛡️ TODAY'S SAFETY TIP",style=MaterialTheme.typography.titleMedium);Text(tip)}}
+        Button(onClick=onReportIncident,modifier=Modifier.fillMaxWidth()){Text("REPORT INCIDENT")}
+        Text("Use the tabs below for Education and Emergency Response.")
+        OutlinedButton(onClick=onLogout,modifier=Modifier.fillMaxWidth()){Text("LOG OUT")}
+    }
+}
 @Composable fun EducationScreen()=EducationDashboardScreen()
 @Composable fun ResponseScreen(appViewModel:AppViewModel,sosViewModel:SosViewModel,onOpenCampusMap:()->Unit)=EmergencyResponseScreen(appViewModel,sosViewModel,onOpenCampusMap)
 @Composable fun CenteredText(text:String){Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Text(text,style=MaterialTheme.typography.headlineMedium)} }
