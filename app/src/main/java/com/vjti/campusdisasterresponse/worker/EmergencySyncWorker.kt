@@ -8,6 +8,7 @@ import com.vjti.campusdisasterresponse.data.local.entity.EmergencyAlert
 import com.vjti.campusdisasterresponse.network.AuthSessionStore
 import com.vjti.campusdisasterresponse.network.EmergencyAlertClient
 import com.vjti.campusdisasterresponse.network.EmergencySyncClient
+import com.vjti.campusdisasterresponse.network.NotificationClient
 import com.vjti.campusdisasterresponse.network.SyncTransmissionResult
 import com.vjti.campusdisasterresponse.notifications.NotificationHelper
 import kotlinx.coroutines.Dispatchers
@@ -23,11 +24,19 @@ class EmergencySyncWorker(context: Context, params: WorkerParameters) : Coroutin
         val eventsToSync = dao.getEventsToSync()
         val syncClient = EmergencySyncClient()
         var hasFailure = false
+
         for (event in eventsToSync) {
             when (syncClient.syncEvent(event, token)) {
                 SyncTransmissionResult.SUCCESS -> dao.markAsSynced(listOf(event.id))
-                SyncTransmissionResult.AUTH_REQUIRED -> { sessionStore.clearToken(); dao.resetToPending(eventsToSync.map { it.id }); return@withContext Result.success() }
-                SyncTransmissionResult.FAILURE -> { dao.markAsFailed(listOf(event.id)); hasFailure = true }
+                SyncTransmissionResult.AUTH_REQUIRED -> {
+                    sessionStore.clearToken()
+                    dao.resetToPending(eventsToSync.map { it.id })
+                    return@withContext Result.success()
+                }
+                SyncTransmissionResult.FAILURE -> {
+                    dao.markAsFailed(listOf(event.id))
+                    hasFailure = true
+                }
             }
         }
 
@@ -40,6 +49,14 @@ class EmergencySyncWorker(context: Context, params: WorkerParameters) : Coroutin
                 NotificationHelper.showEmergency(applicationContext, alert.title, alert.message)
             }
         }
+
+        runCatching {
+            val notifications = NotificationClient().list(token).getOrThrow()
+            notifications.filter { it.readAt == null }.take(20).forEach { notification ->
+                NotificationHelper.showEmergency(applicationContext, notification.title, notification.message)
+            }
+        }
+
         if (hasFailure) Result.retry() else Result.success()
     }
 }
