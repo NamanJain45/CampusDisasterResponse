@@ -2,6 +2,7 @@ package com.vjti.campusdisasterresponse.worker
 
 import android.content.Context
 import androidx.core.content.edit
+import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.vjti.campusdisasterresponse.data.local.AppDatabase
@@ -54,16 +55,20 @@ class EmergencySyncWorker(context: Context, params: WorkerParameters) : Coroutin
         runCatching {
             val notifications = NotificationClient().list(token).getOrThrow()
             val prefs = applicationContext.getSharedPreferences("notification_delivery", Context.MODE_PRIVATE)
+            val initialized = prefs.getBoolean("initialized", false)
             val seen = prefs.getStringSet("seen_ids", emptySet()).orEmpty().toMutableSet()
-            notifications.filter { it.id !in seen }.take(20).forEach { notification ->
-                NotificationHelper.showEmergency(applicationContext, notification.title, notification.message)
-                seen.add(notification.id)
+
+            if (!initialized) {
+                seen.addAll(notifications.map { it.id })
+                prefs.edit { putStringSet("seen_ids", seen); putBoolean("initialized", true) }
+            } else {
+                notifications.filter { it.id !in seen }.take(20).forEach { notification ->
+                    NotificationHelper.showEmergency(applicationContext, notification.title, notification.message)
+                    seen.add(notification.id)
+                }
+                if (seen.size > 200) seen.retainAll(notifications.map { it.id }.toSet())
+                prefs.edit { putStringSet("seen_ids", seen) }
             }
-            if (seen.size > 200) {
-                val currentIds = notifications.map { it.id }.toSet()
-                seen.retainAll(currentIds)
-            }
-            prefs.edit { putStringSet("seen_ids", seen) }
         }
 
         if (hasFailure) Result.retry() else Result.success()
