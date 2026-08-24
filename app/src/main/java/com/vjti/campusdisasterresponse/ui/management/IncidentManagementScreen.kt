@@ -18,6 +18,7 @@ fun IncidentManagementScreen(token: String, onBack: () -> Unit) {
     var pending by remember { mutableStateOf<List<IncidentReport>>(emptyList()) }
     var history by remember { mutableStateOf<List<IncidentReport>>(emptyList()) }
     var tab by remember { mutableIntStateOf(0) }
+    var query by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("Loading reports…") }
     val scope = rememberCoroutineScope()
     val client = remember { IncidentManagementClient() }
@@ -48,6 +49,8 @@ fun IncidentManagementScreen(token: String, onBack: () -> Unit) {
         1 -> history.filter { it.status == "VERIFIED" || it.status == "ACTIVE" }
         2 -> history.filter { it.status == "RESOLVED" }
         else -> history.filter { it.status == "REJECTED" }
+    }.filter { report ->
+        query.isBlank() || listOf(report.type, report.status, report.reporter, report.email, report.location, report.description, report.createdAt).any { it.contains(query, ignoreCase = true) }
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -56,6 +59,9 @@ fun IncidentManagementScreen(token: String, onBack: () -> Unit) {
             TextButton(onClick = { load() }) { Text("REFRESH") }
         }
         Text(message)
+        Spacer(Modifier.height(6.dp))
+        OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search reporter, type, location, status…") })
+        Spacer(Modifier.height(8.dp))
         TabRow(selectedTabIndex = tab) {
             Tab(tab == 0, { tab = 0 }, text = { Text("PENDING") })
             Tab(tab == 1, { tab = 1 }, text = { Text("ACTIVE") })
@@ -73,7 +79,6 @@ fun IncidentManagementScreen(token: String, onBack: () -> Unit) {
                         if (report.description.isNotBlank()) Text(report.description)
                         Text("Time: ${report.createdAt}", style = MaterialTheme.typography.bodySmall)
                         if (report.latitude != null && report.longitude != null) Text("GPS: ${report.latitude}, ${report.longitude}", style = MaterialTheme.typography.bodySmall)
-
                         when (report.status) {
                             "PENDING" -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(onClick = { review(report.id, "VERIFIED") }, Modifier.weight(1f)) { Text("VERIFY") }
