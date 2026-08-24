@@ -7,7 +7,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class LocalBackendAuthClient(
-    private val baseUrl: String = "http://10.0.2.2:3000"
+    private val baseUrl: String = "http://192.168.0.115:3000"
 ) {
     suspend fun login(email: String, password: String): AuthLoginResult = withContext(Dispatchers.IO) {
         try {
@@ -37,7 +37,7 @@ class LocalBackendAuthClient(
                 connection.disconnect()
             }
         } catch (error: Exception) {
-            AuthLoginResult.Failure(error.message ?: "Unable to reach local backend")
+            AuthLoginResult.Failure(error.message ?: "Unable to reach local backend at $baseUrl")
         }
     }
 }
