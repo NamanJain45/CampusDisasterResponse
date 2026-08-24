@@ -1,8 +1,13 @@
 package com.vjti.campusdisasterresponse.ui.response
 
+import android.Manifest
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.pm.PackageManager
+import android.location.LocationManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -11,7 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.vjti.campusdisasterresponse.location.LocationHandler
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.vjti.campusdisasterresponse.network.EmergencyReportRequest
 import com.vjti.campusdisasterresponse.network.ReportClient
 import com.vjti.campusdisasterresponse.network.ReportResult
@@ -29,6 +37,10 @@ private tailrec fun Context.findComponentActivity(): ComponentActivity? = when (
 fun ReportIncidentScreen(token: String, onBack: () -> Unit) {
     val context = LocalContext.current
     val activity = remember(context) { context.findComponentActivity() }
+    val fusedLocationClient = remember(activity) {
+        activity?.let { LocationServices.getFusedLocationProviderClient(it) }
+    }
+
     var type by remember { mutableStateOf("HAZARD") }
     var location by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf<Double?>(null) }
@@ -40,25 +52,78 @@ fun ReportIncidentScreen(token: String, onBack: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val client = remember { ReportClient() }
-    val options = listOf("FIRE", "FLOOD", "STRUCTURAL_DAMAGE", "HAZARD", "MEDICAL", "OTHER")
 
-    val locationHandler = if (activity != null) {
-        remember(activity) {
-            LocationHandler(activity) { lat, lon, error ->
-                locating = false
-                if (lat != null && lon != null) {
-                    latitude = lat
-                    longitude = lon
-                    location = "${"%.6f".format(lat)}, ${"%.6f".format(lon)}"
-                    message = "Location captured automatically"
-                } else {
-                    message = error ?: "Could not capture location"
-                }
-            }
+    fun fetchLocation() {
+        val currentActivity = activity
+        val locationClient = fusedLocationClient
+        if (currentActivity == null || locationClient == null) {
+            locating = false
+            message = "Unable to access the current activity"
+            return
         }
-    } else {
-        null
+
+        val manager = currentActivity.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
+            !manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        ) {
+            locating = false
+            message = "Device location services (GPS/Network) are disabled"
+            return
+        }
+
+        try {
+            val cancellation = CancellationTokenSource()
+            locationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellation.token)
+                .addOnSuccessListener { result ->
+                    locating = false
+                    if (result != null) {
+                        latitude = result.latitude
+                        longitude = result.longitude
+                        location = "${"%.6f".format(result.latitude)}, ${"%.6f".format(result.longitude)}"
+                        message = "Location captured automatically"
+                    } else {
+                        message = "Location unavailable at this moment"
+                    }
+                }
+                .addOnFailureListener { error ->
+                    locating = false
+                    message = error.localizedMessage ?: "Could not capture location"
+                }
+        } catch (e: SecurityException) {
+            locating = false
+            message = "Location permission is required"
+        }
     }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) fetchLocation() else {
+            locating = false
+            message = "Location permission denied"
+        }
+    }
+
+    fun requestLocation() {
+        val hasFine = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasFine || hasCoarse) fetchLocation()
+        else permissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+    val options = listOf("FIRE", "FLOOD", "STRUCTURAL_DAMAGE", "HAZARD", "MEDICAL", "OTHER")
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("REPORT INCIDENT", style = MaterialTheme.typography.headlineMedium)
@@ -87,12 +152,9 @@ fun ReportIncidentScreen(token: String, onBack: () -> Unit) {
         Spacer(Modifier.height(8.dp))
         OutlinedButton(
             onClick = {
-                if (locationHandler == null) {
-                    message = "Unable to access the current activity"
-                } else {
-                    locating = true
-                    locationHandler.requestLocation()
-                }
+                locating = true
+                message = null
+                requestLocation()
             },
             enabled = !locating,
             modifier = Modifier.fillMaxWidth()
