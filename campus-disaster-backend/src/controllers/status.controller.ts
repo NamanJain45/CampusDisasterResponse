@@ -14,8 +14,8 @@ export async function updateStatus(req: AuthenticatedRequest, res: Response): Pr
     data: {
       userId: req.user.id,
       status,
-      message,
-      clientId
+      message: typeof message === "string" ? message : null,
+      clientId: typeof clientId === "string" ? clientId : undefined
     }
   });
 
@@ -29,11 +29,11 @@ export async function listLatestStatuses(req: AuthenticatedRequest, res: Respons
   }
 
   const users = await prisma.user.findMany({
-    where: { role: "STUDENT" },
     select: {
       id: true,
       name: true,
       email: true,
+      role: true,
       statuses: {
         orderBy: { createdAt: "desc" },
         take: 1
@@ -46,6 +46,7 @@ export async function listLatestStatuses(req: AuthenticatedRequest, res: Respons
     id: user.id,
     name: user.name,
     email: user.email,
+    role: user.role,
     status: user.statuses[0]?.status ?? "UNKNOWN",
     message: user.statuses[0]?.message ?? null,
     updatedAt: user.statuses[0]?.createdAt ?? null
