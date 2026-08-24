@@ -17,9 +17,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.2.0",
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
     "prisma": "7.9.1",
-    "typescript": "^7.0.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "name": "campus-disaster-backend",
   "version": "1.0.0",
@@ -35,6 +35,10 @@
     "db:seed": "ts-node prisma/seed.ts",
     "postinstall": "prisma generate"
   },
-  "keywords": ["disaster-response", "campus", "emergency"],
+  "keywords": [
+    "disaster-response",
+    "campus",
+    "emergency"
+  ],
   "type": "commonjs"
 }
