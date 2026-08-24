@@ -9,6 +9,7 @@ import java.net.URL
 
 data class MapIncident(
     val id: String,
+    val kind: String,
     val type: String,
     val location: String,
     val latitude: Double?,
@@ -31,7 +32,17 @@ class MapIncidentClient(private val baseUrl: String = BackendConfig.BASE_URL) {
                 if (code !in 200..299) error("Map request failed (HTTP $code): $body")
                 val json = JSONObject(body)
                 val incidents = json.optJSONArray("incidents") ?: JSONArray()
-                buildList { for (i in 0 until incidents.length()) { val item = incidents.getJSONObject(i); add(MapIncident(item.optString("id"), item.optString("type"), item.optString("locationText"), item.optDoubleOrNull("latitude"), item.optDoubleOrNull("longitude"), item.optString("status"), item.optString("createdAt"))) } }
+                val sos = json.optJSONArray("sos") ?: JSONArray()
+                buildList {
+                    for (i in 0 until incidents.length()) {
+                        val item = incidents.getJSONObject(i)
+                        add(MapIncident(item.optString("id"), "INCIDENT", item.optString("type"), item.optString("locationText"), item.optDoubleOrNull("latitude"), item.optDoubleOrNull("longitude"), item.optString("status"), item.optString("createdAt")))
+                    }
+                    for (i in 0 until sos.length()) {
+                        val item = sos.getJSONObject(i)
+                        add(MapIncident(item.optString("id"), "SOS", "SOS", "Emergency location", item.optDoubleOrNull("latitude"), item.optDoubleOrNull("longitude"), if (item.optBoolean("active")) "ACTIVE" else "RESOLVED", item.optString("createdAt")))
+                    }
+                }.sortedByDescending { it.createdAt }
             } finally { connection.disconnect() }
         }
     }
