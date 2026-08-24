@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { prisma } from "../config/db";
 import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { notifyUsers } from "../services/notification.service";
