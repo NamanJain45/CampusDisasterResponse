@@ -75,14 +75,9 @@ fun ModuleDetailScreen(module: DisasterModule, onBack: () -> Unit) {
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    text = section.title,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
+                                Text(section.title, style = MaterialTheme.typography.titleLarge)
                                 Text(section.description)
-                                section.keyTakeaways.forEach { takeaway ->
-                                    Text("• $takeaway")
-                                }
+                                section.keyTakeaways.forEach { takeaway -> Text("• $takeaway") }
                             }
                         }
                     }
@@ -93,48 +88,28 @@ fun ModuleDetailScreen(module: DisasterModule, onBack: () -> Unit) {
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(
-                                    text = "Quick MCQ",
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-
+                                Text("Quick MCQ", style = MaterialTheme.typography.titleLarge)
                                 section.questions.forEachIndexed { index, question ->
-                                    Text(
-                                        text = "${index + 1}. ${question.question}",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-
+                                    Text("${index + 1}. ${question.question}", style = MaterialTheme.typography.titleMedium)
                                     question.options.forEachIndexed { optionIndex, option ->
                                         Row(modifier = Modifier.fillMaxWidth()) {
                                             RadioButton(
                                                 selected = answers[index] == optionIndex,
-                                                onClick = {
-                                                    if (!submitted) {
-                                                        answers[index] = optionIndex
-                                                    }
-                                                },
+                                                onClick = { if (!submitted) answers[index] = optionIndex },
                                                 enabled = !submitted
                                             )
-                                            Text(
-                                                text = option,
-                                                modifier = Modifier.padding(top = 12.dp)
-                                            )
+                                            Text(option, modifier = Modifier.padding(top = 12.dp))
                                         }
                                     }
                                 }
-
                                 Button(
                                     onClick = { submitted = true },
                                     enabled = !submitted && answers.size == section.questions.size
                                 ) {
                                     Text("CHECK ANSWERS")
                                 }
-
                                 if (submitted) {
-                                    Text(
-                                        text = "Score: $score / ${section.questions.size}",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
+                                    Text("Score: $score / ${section.questions.size}", style = MaterialTheme.typography.titleMedium)
                                 }
                             }
                         }
@@ -146,28 +121,17 @@ fun ModuleDetailScreen(module: DisasterModule, onBack: () -> Unit) {
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    text = section.title,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-
+                                Text(section.title, style = MaterialTheme.typography.titleLarge)
                                 if (section.videoUrl.isBlank()) {
                                     Text("Video link will be added when the YouTube link is provided.")
                                 } else {
-                                    Button(
-                                        onClick = {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(section.videoUrl))
-                                            context.startActivity(intent)
-                                        }
-                                    ) {
+                                    Button(onClick = {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(section.videoUrl)))
+                                    }) {
                                         Text("WATCH VIDEO")
                                     }
                                 }
-
-                                Text(
-                                    text = section.duration,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                Text(section.duration, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -179,10 +143,7 @@ fun ModuleDetailScreen(module: DisasterModule, onBack: () -> Unit) {
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 section.steps.forEach { step ->
-                                    Text(
-                                        text = "${step.stepNumber}. ${step.title}",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
+                                    Text("${step.stepNumber}. ${step.title}", style = MaterialTheme.typography.titleMedium)
                                     Text(step.description)
                                 }
                             }
