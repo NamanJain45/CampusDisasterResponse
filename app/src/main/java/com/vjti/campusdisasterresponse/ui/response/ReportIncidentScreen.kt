@@ -1,0 +1,202 @@
+package com.vjti.campusdisasterresponse.ui.response
+
+import android.Manifest
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import com.vjti.campusdisasterresponse.network.EmergencyReportRequest
+import com.vjti.campusdisasterresponse.network.ReportClient
+import com.vjti.campusdisasterresponse.network.ReportResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+private tailrec fun Context.findComponentActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findComponentActivity()
+    else -> null
+}
+
+@Composable
+fun ReportIncidentScreen(token: String, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val activity = remember(context) { context.findComponentActivity() }
+    val fusedLocationClient = remember(activity) {
+        activity?.let { LocationServices.getFusedLocationProviderClient(it) }
+    }
+
+    var type by remember { mutableStateOf("HAZARD") }
+    var location by remember { mutableStateOf("") }
+    var latitude by remember { mutableStateOf<Double?>(null) }
+    var longitude by remember { mutableStateOf<Double?>(null) }
+    var description by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
+    var submitting by remember { mutableStateOf(false) }
+    var locating by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val client = remember { ReportClient() }
+
+    fun fetchLocation() {
+        val currentActivity = activity
+        val locationClient = fusedLocationClient
+        if (currentActivity == null || locationClient == null) {
+            locating = false
+            message = "Unable to access the current activity"
+            return
+        }
+
+        val manager = currentActivity.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
+            !manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        ) {
+            locating = false
+            message = "Device location services (GPS/Network) are disabled"
+            return
+        }
+
+        try {
+            val cancellation = CancellationTokenSource()
+            locationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellation.token)
+                .addOnSuccessListener { result ->
+                    locating = false
+                    if (result != null) {
+                        latitude = result.latitude
+                        longitude = result.longitude
+                        location = "${"%.6f".format(result.latitude)}, ${"%.6f".format(result.longitude)}"
+                        message = "Location captured automatically"
+                    } else {
+                        message = "Location unavailable at this moment"
+                    }
+                }
+                .addOnFailureListener { error ->
+                    locating = false
+                    message = error.localizedMessage ?: "Could not capture location"
+                }
+        } catch (e: SecurityException) {
+            locating = false
+            message = "Location permission is required"
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) fetchLocation() else {
+            locating = false
+            message = "Location permission denied"
+        }
+    }
+
+    fun requestLocation() {
+        val hasFine = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasFine || hasCoarse) fetchLocation()
+        else permissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+    val options = listOf("FIRE", "FLOOD", "STRUCTURAL_DAMAGE", "HAZARD", "MEDICAL", "OTHER")
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+        Text("REPORT INCIDENT", style = MaterialTheme.typography.headlineMedium)
+        Text("Your report starts as PENDING and is reviewed by campus staff.", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(20.dp))
+        Box {
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(type) }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { option ->
+                    DropdownMenuItem(text = { Text(option) }, onClick = { type = option; expanded = false })
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        OutlinedTextField(
+            value = location,
+            onValueChange = {
+                location = it
+                latitude = null
+                longitude = null
+            },
+            label = { Text("Location") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+                locating = true
+                message = null
+                requestLocation()
+            },
+            enabled = !locating,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (locating) "GETTING LOCATION..." else "📍 USE MY CURRENT LOCATION") }
+        Spacer(Modifier.height(16.dp))
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it },
+            label = { Text("Description") },
+            modifier = Modifier.fillMaxWidth().height(140.dp)
+        )
+        Spacer(Modifier.height(20.dp))
+        message?.let { Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 12.dp)) }
+        Button(
+            onClick = {
+                if (location.isBlank()) {
+                    message = "Location is required"
+                    return@Button
+                }
+                submitting = true
+                message = null
+                scope.launch {
+                    val request = EmergencyReportRequest(
+                        type = type,
+                        locationText = location.trim(),
+                        description = description.trim().ifBlank { null },
+                        latitude = latitude,
+                        longitude = longitude
+                    )
+                    val result = withContext(Dispatchers.IO) { client.createReport(request, token) }
+                    submitting = false
+                    message = when (result) {
+                        ReportResult.SUCCESS -> "Report submitted — status: PENDING"
+                        ReportResult.AUTH_REQUIRED -> "Session expired. Please log in again."
+                        ReportResult.FAILURE -> "Could not submit report. Check your connection."
+                    }
+                }
+            },
+            enabled = !submitting,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (submitting) "SUBMITTING..." else "SUBMIT REPORT") }
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
+    }
+}

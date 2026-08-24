@@ -1,96 +1,76 @@
 package com.vjti.campusdisasterresponse.worker
 
 import android.content.Context
+import androidx.core.content.edit
+import androidx.work.BackoffPolicy
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.vjti.campusdisasterresponse.data.local.AppDatabase
+import com.vjti.campusdisasterresponse.data.local.entity.EmergencyAlert
 import com.vjti.campusdisasterresponse.network.AuthSessionStore
+import com.vjti.campusdisasterresponse.network.EmergencyAlertClient
 import com.vjti.campusdisasterresponse.network.EmergencySyncClient
+import com.vjti.campusdisasterresponse.network.NotificationClient
 import com.vjti.campusdisasterresponse.network.SyncTransmissionResult
+import com.vjti.campusdisasterresponse.notifications.NotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class EmergencySyncWorker(
-    context: Context,
-    params: WorkerParameters
-) : CoroutineWorker(context, params) {
+class EmergencySyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        val sessionStore = AuthSessionStore(applicationContext)
+        val token = sessionStore.getToken() ?: return@withContext Result.success()
+        val database = AppDatabase.getDatabase(applicationContext)
+        val dao = database.emergencyEventDao()
+        dao.markPendingAsSyncing()
+        val eventsToSync = dao.getEventsToSync()
+        val syncClient = EmergencySyncClient()
+        var hasFailure = false
 
-    override suspend fun doWork(): Result =
-        withContext(Dispatchers.IO) {
-
-            val sessionStore =
-                AuthSessionStore(
-                    applicationContext
-                )
-
-            val token =
-                sessionStore.getToken()
-
-            if (token.isNullOrBlank()) {
-                return@withContext Result.success()
-            }
-
-            val dao =
-                AppDatabase
-                    .getDatabase(
-                        applicationContext
-                    )
-                    .emergencyEventDao()
-
-            dao.markPendingAsSyncing()
-
-            val eventsToSync =
-                dao.getEventsToSync()
-
-            if (eventsToSync.isEmpty()) {
-                return@withContext Result.success()
-            }
-
-            val syncClient =
-                EmergencySyncClient()
-
-            var hasFailure = false
-
-            for (event in eventsToSync) {
-
-                when (
-                    syncClient.syncEvent(
-                        event,
-                        token
-                    )
-                ) {
-                    SyncTransmissionResult.SUCCESS -> {
-                        dao.markAsSynced(
-                            listOf(event.id)
-                        )
-                    }
-
-                    SyncTransmissionResult.AUTH_REQUIRED -> {
-                        sessionStore.clearToken()
-
-                        dao.resetToPending(
-                            eventsToSync.map {
-                                it.id
-                            }
-                        )
-
-                        return@withContext Result.success()
-                    }
-
-                    SyncTransmissionResult.FAILURE -> {
-                        dao.markAsFailed(
-                            listOf(event.id)
-                        )
-
-                        hasFailure = true
-                    }
+        for (event in eventsToSync) {
+            when (syncClient.syncEvent(event, token)) {
+                SyncTransmissionResult.SUCCESS -> dao.markAsSynced(listOf(event.id))
+                SyncTransmissionResult.AUTH_REQUIRED -> {
+                    sessionStore.clearToken()
+                    dao.resetToPending(eventsToSync.map { it.id })
+                    return@withContext Result.success()
+                }
+                SyncTransmissionResult.FAILURE -> {
+                    dao.markAsFailed(listOf(event.id))
+                    hasFailure = true
                 }
             }
+        }
 
-            if (hasFailure) {
-                Result.retry()
-            } else {
-                Result.success()
+        runCatching {
+            val alerts = EmergencyAlertClient().getActiveAlerts(token)
+            val existing = database.disasterDao().getAlertsSnapshot()
+            val existingIds = existing.map { it.id }.toSet()
+            database.disasterDao().insertAlerts(alerts.map { EmergencyAlert(it.id, it.message, it.severity, System.currentTimeMillis()) })
+            alerts.filter { it.id !in existingIds }.forEach { alert ->
+                NotificationHelper.showEmergency(applicationContext, alert.title, alert.message)
             }
         }
+
+        runCatching {
+            val notifications = NotificationClient().list(token).getOrThrow()
+            val prefs = applicationContext.getSharedPreferences("notification_delivery", Context.MODE_PRIVATE)
+            val initialized = prefs.getBoolean("initialized", false)
+            val seen = prefs.getStringSet("seen_ids", emptySet()).orEmpty().toMutableSet()
+
+            if (!initialized) {
+                seen.addAll(notifications.map { it.id })
+                prefs.edit { putStringSet("seen_ids", seen); putBoolean("initialized", true) }
+            } else {
+                notifications.filter { it.id !in seen }.take(20).forEach { notification ->
+                    NotificationHelper.showEmergency(applicationContext, notification.title, notification.message)
+                    seen.add(notification.id)
+                }
+                if (seen.size > 200) seen.retainAll(notifications.map { it.id }.toSet())
+                prefs.edit { putStringSet("seen_ids", seen) }
+            }
+        }
+
+        if (hasFailure) Result.retry() else Result.success()
+    }
 }

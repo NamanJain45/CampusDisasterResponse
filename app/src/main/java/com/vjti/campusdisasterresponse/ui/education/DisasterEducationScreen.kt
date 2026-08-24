@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,7 +43,6 @@ fun DisasterEducationScreen(viewModel: EducationViewModel) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Disaster Selection Filter Chips
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(disasterTypes) { disaster ->
                 FilterChip(
@@ -57,7 +55,6 @@ fun DisasterEducationScreen(viewModel: EducationViewModel) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Module Selection Chips
         selectedDisaster?.let { disaster ->
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(disaster.modules) { module ->
@@ -78,7 +75,6 @@ fun DisasterEducationScreen(viewModel: EducationViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Selected Module Content Viewer
         selectedModule?.let { module ->
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -102,6 +98,7 @@ fun DisasterEducationScreen(viewModel: EducationViewModel) {
                         is ModuleSection.VisualGuide -> VisualGuideSection(section)
                         is ModuleSection.Instruction -> InstructionSection(section)
                         is ModuleSection.VideoLearning -> VideoLearningSection(section)
+                        is ModuleSection.Quiz -> QuizSection(section)
                     }
                 }
             }
@@ -116,44 +113,23 @@ private fun VisualGuideSection(section: ModuleSection.VisualGuide) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Visual Guide",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Text("Visual Guide", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(8.dp))
             section.steps.forEach { step ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                     verticalAlignment = Alignment.Top
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "${step.stepNumber}",
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("${step.stepNumber}", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(
-                            text = step.title,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = step.description,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Text(step.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(step.description, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -168,20 +144,34 @@ private fun InstructionSection(section: ModuleSection.Instruction) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = section.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Text(section.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = section.description, style = MaterialTheme.typography.bodyMedium)
+            Text(section.description, style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(8.dp))
             section.keyTakeaways.forEach { takeaway ->
                 Row(modifier = Modifier.padding(vertical = 2.dp)) {
-                    Text(text = "• ", fontWeight = FontWeight.Bold)
-                    Text(text = takeaway, style = MaterialTheme.typography.bodySmall)
+                    Text("• ", fontWeight = FontWeight.Bold)
+                    Text(takeaway, style = MaterialTheme.typography.bodySmall)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuizSection(section: ModuleSection.Quiz) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Quick MCQ", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            section.questions.forEachIndexed { index, question ->
+                Text("${index + 1}. ${question.question}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                question.options.forEachIndexed { optionIndex, option ->
+                    Text("${('A'.code + optionIndex).toChar()}. $option", style = MaterialTheme.typography.bodySmall)
+                }
+                if (index < section.questions.lastIndex) Spacer(modifier = Modifier.height(4.dp))
             }
         }
     }
@@ -190,6 +180,19 @@ private fun InstructionSection(section: ModuleSection.Instruction) {
 @Composable
 private fun VideoLearningSection(section: ModuleSection.VideoLearning) {
     val context = LocalContext.current
+    if (section.videoUrl.isBlank()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Video Learning: ${section.title}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("YouTube link will be added when provided.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        return
+    }
+
     val exoPlayer = remember(section.videoUrl) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(Uri.parse(section.videoUrl)))
@@ -197,10 +200,8 @@ private fun VideoLearningSection(section: ModuleSection.VideoLearning) {
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            exoPlayer.release()
-        }
+    DisposableEffect(exoPlayer) {
+        onDispose { exoPlayer.release() }
     }
 
     Card(
@@ -208,29 +209,12 @@ private fun VideoLearningSection(section: ModuleSection.VideoLearning) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Video Learning: ${section.title}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Duration: ${section.duration}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text("Video Learning: ${section.title}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text("Duration: ${section.duration}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
             AndroidView(
-                factory = { ctx ->
-                    PlayerView(ctx).apply {
-                        player = exoPlayer
-                        useController = true
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                factory = { ctx -> PlayerView(ctx).apply { player = exoPlayer; useController = true } },
+                modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(8.dp))
             )
         }
     }
