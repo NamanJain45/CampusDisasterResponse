@@ -6,5 +6,5 @@ package com.vjti.campusdisasterresponse.network
  * Change this single value when the laptop's LAN IP changes.
  */
 object BackendConfig {
-    const val BASE_URL = "http://192.168.1.163:3000"
+    const val BASE_URL = "http://10.41.138.46:3000"
 }
