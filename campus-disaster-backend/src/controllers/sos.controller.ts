@@ -42,3 +42,27 @@ export async function getActiveSos(req: AuthenticatedRequest, res: Response): Pr
   });
   res.json(events);
 }
+
+export async function resolveSos(req: AuthenticatedRequest, res: Response): Promise<void> {
+  if (!req.user) { res.status(401).json({ message: "Authentication required" }); return; }
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const sos = await prisma.sOS.update({
+    where: { id },
+    data: { active: false },
+    include: { user: { select: { id: true, name: true } } }
+  });
+
+  await prisma.auditLog.create({
+    data: { actorId: req.user.id, action: "SOS_RESOLVED", entityType: "SOS", entityId: sos.id }
+  });
+
+  await notifyUsers({
+    type: "SOS_RESOLVED",
+    title: "SOS resolved",
+    message: `SOS from ${sos.user.name} has been resolved.`,
+    relatedType: "SOS",
+    relatedId: sos.id
+  });
+
+  res.json(sos);
+}
