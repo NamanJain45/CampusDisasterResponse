@@ -27,6 +27,7 @@ import com.vjti.campusdisasterresponse.network.AuthSessionStore
 import com.vjti.campusdisasterresponse.network.MapIncident
 import com.vjti.campusdisasterresponse.network.MapIncidentClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +35,7 @@ import kotlinx.coroutines.withContext
 fun CampusEvacuationMapScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val token = remember { AuthSessionStore(context).getToken().orEmpty() }
+    val scope = rememberCoroutineScope()
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var incidents by remember { mutableStateOf<List<MapIncident>>(emptyList()) }
@@ -82,7 +84,7 @@ fun CampusEvacuationMapScreen(onBack: () -> Unit = {}) {
             Column(Modifier.fillMaxWidth().heightIn(max = 360.dp).padding(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("INCIDENT & SOS LOCATIONS", style = MaterialTheme.typography.titleMedium)
-                    TextButton(onClick = { loadIncidents() }) { Text("REFRESH") }
+                    TextButton(onClick = { scope.launch { loadIncidents() } }) { Text("REFRESH") }
                 }
                 Text(loadMessage, style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search type/location/status") })
