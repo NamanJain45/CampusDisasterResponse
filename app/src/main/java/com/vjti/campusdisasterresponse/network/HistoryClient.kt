@@ -27,6 +27,14 @@ class HistoryClient(private val baseUrl: String = BackendConfig.BASE_URL) {
         HistoryItem(json.optString("id"), "ALERT", json.optString("title"), json.optString("message"), if (json.optBoolean("active")) "ACTIVE" else "RESOLVED", "", "", json.optString("createdAt"))
     }
 
+    suspend fun sos(token: String): Result<List<HistoryItem>> = fetch(token, "/api/v1/history/sos") { json ->
+        val user = json.optJSONObject("user")
+        val coordinates = if (json.has("latitude") && !json.isNull("latitude") && json.has("longitude") && !json.isNull("longitude")) {
+            "GPS: ${json.optDouble("latitude")}, ${json.optDouble("longitude")}"
+        } else "Location unavailable"
+        HistoryItem(json.optString("id"), "SOS", "High-priority SOS", coordinates + if (json.optString("message").isNotBlank()) " — ${json.optString("message")}" else "", if (json.optBoolean("active")) "ACTIVE" else "RESOLVED", user?.optString("name").orEmpty(), "", json.optString("createdAt"))
+    }
+
     suspend fun audit(token: String): Result<List<HistoryItem>> = fetch(token, "/api/v1/history/audit") { json ->
         HistoryItem(json.optString("id"), "AUDIT", json.optString("action"), json.optString("details"), json.optString("entityType"), json.optJSONObject("actor")?.optString("name").orEmpty(), "", json.optString("createdAt"))
     }
