@@ -10,13 +10,16 @@ import java.net.URL
 data class IncidentReport(val id: String, val type: String, val location: String, val description: String, val status: String, val reporter: String, val email: String, val createdAt: String, val latitude: Double?, val longitude: Double?)
 
 class IncidentManagementClient(private val baseUrl: String = BackendConfig.BASE_URL) {
-    suspend fun listPending(token: String): Result<List<IncidentReport>> = withContext(Dispatchers.IO) { runCatching {
-        val array = JSONArray(request(token, "GET", "/api/v1/reports/pending"))
-        buildList { for (i in 0 until array.length()) add(parse(array.getJSONObject(i))) }
-    } }
+    suspend fun listPending(token: String): Result<List<IncidentReport>> = fetchList(token, "/api/v1/reports/pending")
+    suspend fun listHistory(token: String): Result<List<IncidentReport>> = fetchList(token, "/api/v1/history/incidents")
 
     suspend fun review(token: String, id: String, status: String): Result<IncidentReport> = withContext(Dispatchers.IO) { runCatching {
         parse(JSONObject(request(token, "PATCH", "/api/v1/reports/$id/review", JSONObject().put("status", status))))
+    } }
+
+    private suspend fun fetchList(token: String, path: String): Result<List<IncidentReport>> = withContext(Dispatchers.IO) { runCatching {
+        val array = JSONArray(request(token, "GET", path))
+        buildList { for (i in 0 until array.length()) add(parse(array.getJSONObject(i))) }
     } }
 
     private fun parse(json: JSONObject) = IncidentReport(
