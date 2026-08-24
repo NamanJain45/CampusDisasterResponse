@@ -4,7 +4,7 @@ import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 
-class EmergencyAlertClient(private val baseUrl: String = "http://192.168.0.115:3000") {
+class EmergencyAlertClient(private val baseUrl: String = BackendConfig.BASE_URL) {
     fun getActiveAlerts(token: String): List<ServerEmergencyAlert> {
         val connection = URL("$baseUrl/api/v1/emergency/alerts").openConnection() as HttpURLConnection
         return try {
@@ -18,27 +18,11 @@ class EmergencyAlertClient(private val baseUrl: String = "http://192.168.0.115:3
             buildList {
                 for (i in 0 until array.length()) {
                     val json = array.getJSONObject(i)
-                    add(
-                        ServerEmergencyAlert(
-                            id = json.optString("id"),
-                            title = json.optString("title"),
-                            message = json.optString("message"),
-                            severity = json.optString("severity"),
-                            createdAt = json.optString("createdAt")
-                        )
-                    )
+                    add(ServerEmergencyAlert(json.optString("id"), json.optString("title"), json.optString("message"), json.optString("severity"), json.optString("createdAt")))
                 }
             }
-        } finally {
-            connection.disconnect()
-        }
+        } finally { connection.disconnect() }
     }
 }
 
-data class ServerEmergencyAlert(
-    val id: String,
-    val title: String,
-    val message: String,
-    val severity: String,
-    val createdAt: String
-)
+data class ServerEmergencyAlert(val id: String, val title: String, val message: String, val severity: String, val createdAt: String)
