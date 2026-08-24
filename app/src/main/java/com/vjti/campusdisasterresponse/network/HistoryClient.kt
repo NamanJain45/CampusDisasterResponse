@@ -27,6 +27,10 @@ class HistoryClient(private val baseUrl: String = BackendConfig.BASE_URL) {
         HistoryItem(json.optString("id"), "ALERT", json.optString("title"), json.optString("message"), if (json.optBoolean("active")) "ACTIVE" else "RESOLVED", "", "", json.optString("createdAt"))
     }
 
+    suspend fun audit(token: String): Result<List<HistoryItem>> = fetch(token, "/api/v1/history/audit") { json ->
+        HistoryItem(json.optString("id"), "AUDIT", json.optString("action"), json.optString("details"), json.optString("entityType"), json.optJSONObject("actor")?.optString("name").orEmpty(), "", json.optString("createdAt"))
+    }
+
     private suspend fun fetch(token: String, path: String, parse: (JSONObject) -> HistoryItem): Result<List<HistoryItem>> = withContext(Dispatchers.IO) {
         runCatching {
             val connection = URL("$baseUrl$path").openConnection() as HttpURLConnection
