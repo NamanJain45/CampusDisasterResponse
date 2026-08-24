@@ -51,9 +51,11 @@ class EmergencySyncWorker(context: Context, params: WorkerParameters) : Coroutin
         }
 
         runCatching {
-            val notifications = NotificationClient().list(token).getOrThrow()
+            val notificationClient = NotificationClient()
+            val notifications = notificationClient.list(token).getOrThrow()
             notifications.filter { it.readAt == null }.take(20).forEach { notification ->
                 NotificationHelper.showEmergency(applicationContext, notification.title, notification.message)
+                notificationClient.markRead(token, notification.id)
             }
         }
 
