@@ -14,19 +14,34 @@ data class StudentSafetyStatus(
 )
 
 class StatusClient(private val baseUrl: String = "http://192.168.0.115:3000") {
-    fun getLatestStatuses(token: String): Result<List<StudentSafetyStatus>> = try {
-        val connection = URL("$baseUrl/api/v1/status/latest").openConnection() as HttpURLConnection
-        try {
-            connection.requestMethod = "GET"
-            connection.connectTimeout = 10_000
-            connection.readTimeout = 10_000
-            connection.setRequestProperty("Authorization", "Bearer $token")
-            if (connection.responseCode !in 200..299) return Result.failure(Exception("HTTP ${connection.responseCode}"))
-            val array = JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
-            Result.success(List(array.length()) { i ->
-                val o = array.getJSONObject(i)
-                StudentSafetyStatus(o.getString("id"), o.getString("name"), o.getString("email"), o.optString("status", "UNKNOWN"), o.optString("message").ifBlank { null }, o.optString("updatedAt").ifBlank { null })
-            })
-        } finally { connection.disconnect() }
-    } catch (e: Exception) { Result.failure(e) }
+    fun getLatestStatuses(token: String): Result<List<StudentSafetyStatus>> {
+        return try {
+            val connection = URL("$baseUrl/api/v1/status/latest").openConnection() as HttpURLConnection
+            try {
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 10_000
+                connection.readTimeout = 10_000
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                if (connection.responseCode !in 200..299) {
+                    return Result.failure(Exception("HTTP ${connection.responseCode}"))
+                }
+                val array = JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
+                Result.success(List(array.length()) { i ->
+                    val o = array.getJSONObject(i)
+                    StudentSafetyStatus(
+                        o.getString("id"),
+                        o.getString("name"),
+                        o.getString("email"),
+                        o.optString("status", "UNKNOWN"),
+                        o.optString("message").ifBlank { null },
+                        o.optString("updatedAt").ifBlank { null }
+                    )
+                })
+            } finally {
+                connection.disconnect()
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
