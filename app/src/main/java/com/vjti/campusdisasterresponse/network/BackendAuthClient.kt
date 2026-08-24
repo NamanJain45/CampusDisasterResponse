@@ -12,7 +12,7 @@ sealed class AuthLoginResult {
 }
 
 class BackendAuthClient(
-    private val baseUrl: String = "http://192.168.0.115:3000"
+    private val baseUrl: String = BackendConfig.BASE_URL
 ) {
     suspend fun login(email: String, password: String): AuthLoginResult =
         withContext(Dispatchers.IO) {
