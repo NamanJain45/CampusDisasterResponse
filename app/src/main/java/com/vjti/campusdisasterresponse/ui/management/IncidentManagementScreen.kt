@@ -15,115 +15,76 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun IncidentManagementScreen(token: String, onBack: () -> Unit) {
-    var reports by remember { mutableStateOf<List<IncidentReport>>(emptyList()) }
-    var message by remember { mutableStateOf("Loading pending reports…") }
+    var pending by remember { mutableStateOf<List<IncidentReport>>(emptyList()) }
+    var history by remember { mutableStateOf<List<IncidentReport>>(emptyList()) }
+    var tab by remember { mutableIntStateOf(0) }
+    var message by remember { mutableStateOf("Loading reports…") }
     val scope = rememberCoroutineScope()
     val client = remember { IncidentManagementClient() }
 
     fun load() {
         scope.launch {
-            val result = withContext(Dispatchers.IO) { client.listPending(token) }
-            result
-                .onSuccess {
-                    reports = it
-                    message = if (it.isEmpty()) "No pending reports" else "${it.size} pending report(s)"
-                }
-                .onFailure {
-                    message = it.message ?: "Unable to load reports"
-                }
+            val pendingResult = withContext(Dispatchers.IO) { client.listPending(token) }
+            val historyResult = withContext(Dispatchers.IO) { client.listHistory(token) }
+            pendingResult.onSuccess { pending = it }
+            historyResult.onSuccess { history = it }
+            message = if (pendingResult.isSuccess && historyResult.isSuccess) {
+                "${pending.size} pending • ${history.count { it.status == "VERIFIED" || it.status == "ACTIVE" }} active/reviewed • ${history.count { it.status == "RESOLVED" }} resolved"
+            } else "Unable to load all incident data"
         }
     }
 
     fun review(reportId: String, status: String) {
         scope.launch {
             val result = withContext(Dispatchers.IO) { client.review(token, reportId, status) }
-            result
-                .onSuccess { load() }
-                .onFailure { message = it.message ?: "Unable to update report" }
+            result.onSuccess { load() }.onFailure { message = it.message ?: "Unable to update report" }
         }
     }
 
     LaunchedEffect(Unit) { load() }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                "INCIDENT MANAGEMENT",
-                style = MaterialTheme.typography.headlineSmall
-            )
-            TextButton(onClick = { load() }) {
-                Text("REFRESH")
-            }
+    val visible = when (tab) {
+        0 -> pending
+        1 -> history.filter { it.status == "VERIFIED" || it.status == "ACTIVE" }
+        2 -> history.filter { it.status == "RESOLVED" }
+        else -> history.filter { it.status == "REJECTED" }
+    }
+
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("INCIDENT MANAGEMENT", style = MaterialTheme.typography.headlineSmall)
+            TextButton(onClick = { load() }) { Text("REFRESH") }
         }
-
         Text(message)
-        Spacer(Modifier.height(10.dp))
-
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            items(reports, key = { it.id }) { report ->
+        TabRow(selectedTabIndex = tab) {
+            Tab(tab == 0, { tab = 0 }, text = { Text("PENDING") })
+            Tab(tab == 1, { tab = 1 }, text = { Text("ACTIVE") })
+            Tab(tab == 2, { tab = 2 }, text = { Text("RESOLVED") })
+            Tab(tab == 3, { tab = 3 }, text = { Text("REJECTED") })
+        }
+        Spacer(Modifier.height(8.dp))
+        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(visible, key = { it.id }) { report ->
                 Card(Modifier.fillMaxWidth()) {
-                    Column(
-                        Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            "${report.type} • ${report.status}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            "Reporter: ${report.reporter} " +
-                                if (report.email.isNotBlank()) "(${report.email})" else ""
-                        )
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("${report.type} • ${report.status}", style = MaterialTheme.typography.titleMedium)
+                        Text("Reporter: ${report.reporter}${if (report.email.isNotBlank()) " (${report.email})" else ""}")
                         Text("Location: ${report.location}")
-                        if (report.description.isNotBlank()) {
-                            Text(report.description)
-                        }
-                        Text(
-                            "Time: ${report.createdAt}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        if (report.latitude != null && report.longitude != null) {
-                            Text(
-                                "GPS: ${report.latitude}, ${report.longitude}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
+                        if (report.description.isNotBlank()) Text(report.description)
+                        Text("Time: ${report.createdAt}", style = MaterialTheme.typography.bodySmall)
+                        if (report.latitude != null && report.longitude != null) Text("GPS: ${report.latitude}, ${report.longitude}", style = MaterialTheme.typography.bodySmall)
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Button(onClick = { review(report.id, "VERIFIED") }) {
-                                Text("VERIFY")
+                        when (report.status) {
+                            "PENDING" -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = { review(report.id, "VERIFIED") }, Modifier.weight(1f)) { Text("VERIFY") }
+                                OutlinedButton(onClick = { review(report.id, "REJECTED") }, Modifier.weight(1f)) { Text("REJECT") }
                             }
-                            OutlinedButton(onClick = { review(report.id, "REJECTED") }) {
-                                Text("REJECT")
-                            }
-                            OutlinedButton(onClick = { review(report.id, "RESOLVED") }) {
-                                Text("RESOLVE")
-                            }
+                            "VERIFIED", "ACTIVE" -> OutlinedButton(onClick = { review(report.id, "RESOLVED") }, Modifier.fillMaxWidth()) { Text("RESOLVE") }
                         }
                     }
                 }
             }
         }
-
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("BACK")
-        }
+        OutlinedButton(onClick = onBack, Modifier.fillMaxWidth()) { Text("BACK") }
     }
 }
