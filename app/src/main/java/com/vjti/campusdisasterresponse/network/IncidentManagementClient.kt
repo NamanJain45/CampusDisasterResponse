@@ -7,33 +7,17 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class IncidentReport(
-    val id: String,
-    val type: String,
-    val location: String,
-    val description: String,
-    val status: String,
-    val reporter: String,
-    val email: String,
-    val createdAt: String,
-    val latitude: Double?,
-    val longitude: Double?
-)
+data class IncidentReport(val id: String, val type: String, val location: String, val description: String, val status: String, val reporter: String, val email: String, val createdAt: String, val latitude: Double?, val longitude: Double?)
 
-class IncidentManagementClient(private val baseUrl: String = "http://192.168.0.115:3000") {
-    suspend fun listPending(token: String): Result<List<IncidentReport>> = withContext(Dispatchers.IO) {
-        runCatching {
-            val json = request(token, "GET", "/api/v1/reports/pending")
-            val array = JSONArray(json)
-            buildList {
-                for (i in 0 until array.length()) add(parse(array.getJSONObject(i)))
-            }
-        }
-    }
+class IncidentManagementClient(private val baseUrl: String = BackendConfig.BASE_URL) {
+    suspend fun listPending(token: String): Result<List<IncidentReport>> = withContext(Dispatchers.IO) { runCatching {
+        val array = JSONArray(request(token, "GET", "/api/v1/reports/pending"))
+        buildList { for (i in 0 until array.length()) add(parse(array.getJSONObject(i))) }
+    } }
 
-    suspend fun review(token: String, id: String, status: String): Result<IncidentReport> = withContext(Dispatchers.IO) {
-        runCatching { parse(JSONObject(request(token, "PATCH", "/api/v1/reports/$id/review", JSONObject().put("status", status)))) }
-    }
+    suspend fun review(token: String, id: String, status: String): Result<IncidentReport> = withContext(Dispatchers.IO) { runCatching {
+        parse(JSONObject(request(token, "PATCH", "/api/v1/reports/$id/review", JSONObject().put("status", status))))
+    } }
 
     private fun parse(json: JSONObject) = IncidentReport(
         id = json.optString("id"), type = json.optString("type"), location = json.optString("locationText"),
