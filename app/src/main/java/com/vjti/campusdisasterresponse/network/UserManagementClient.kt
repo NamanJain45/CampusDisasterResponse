@@ -8,7 +8,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class UserManagementClient(
-    private val baseUrl: String = "http://10.0.2.2:3000"
+    private val baseUrl: String = BackendConfig.BASE_URL
 ) {
     suspend fun listUsers(token: String): Result<List<ManagedUser>> = withContext(Dispatchers.IO) {
         runCatching {
