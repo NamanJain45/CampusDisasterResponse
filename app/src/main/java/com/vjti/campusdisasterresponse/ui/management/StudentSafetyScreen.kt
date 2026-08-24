@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun StudentSafetyScreen(token: String, onBack: () -> Unit) {
-    var students by remember { mutableStateOf<List<StudentSafetyStatus>>(emptyList()) }
+    var people by remember { mutableStateOf<List<StudentSafetyStatus>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -26,28 +26,30 @@ fun StudentSafetyScreen(token: String, onBack: () -> Unit) {
         scope.launch {
             val result = withContext(Dispatchers.IO) { client.getLatestStatuses(token) }
             loading = false
-            result.onSuccess { students = it; error = null }.onFailure { error = "Could not load student statuses" }
+            result.onSuccess { people = it; error = null }.onFailure { error = "Could not load safety statuses" }
         }
     }
     LaunchedEffect(Unit) { load() }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("STUDENT SAFETY", style = MaterialTheme.typography.headlineSmall)
+            Text("CAMPUS SAFETY", style = MaterialTheme.typography.headlineSmall)
             TextButton(onClick = onBack) { Text("BACK") }
         }
+        Text("Students, staff and admins", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(8.dp))
         Button(onClick = { load() }, enabled = !loading, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "LOADING..." else "REFRESH") }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(8.dp)) }
         Spacer(Modifier.height(8.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(students) { student ->
+            items(people) { person ->
                 Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(student.name, style = MaterialTheme.typography.titleMedium)
-                        Text(student.email, style = MaterialTheme.typography.bodySmall)
-                        Text("STATUS: ${student.status}", style = MaterialTheme.typography.titleMedium)
-                        student.message?.let { Text(it) }
-                        student.updatedAt?.let { Text("Updated: $it", style = MaterialTheme.typography.bodySmall) }
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(person.name, style = MaterialTheme.typography.titleMedium)
+                        Text("${person.role} • ${person.email}", style = MaterialTheme.typography.bodySmall)
+                        Text("STATUS: ${person.status}", style = MaterialTheme.typography.titleMedium)
+                        person.message?.let { Text(it) }
+                        person.updatedAt?.let { Text("Updated: $it", style = MaterialTheme.typography.bodySmall) }
                     }
                 }
             }
