@@ -67,7 +67,7 @@ sealed class Screen(val route:String,val title:String,val icon:androidx.compose.
     Scaffold(bottomBar={if(showNavigation){val items=if(isManagement)listOf(Screen.Management,Screen.Response,Screen.Users)else listOf(Screen.Home,Screen.Education,Screen.Response);NavigationBar{items.forEach{screen->NavigationBarItem(icon={Icon(screen.icon,screen.title)},label={Text(screen.title)},selected=currentRoute==screen.route,onClick={navController.navigate(screen.route){popUpTo(navController.graph.findStartDestination().id){saveState=true};launchSingleTop=true;restoreState=true}})}}}}){innerPadding->
         NavHost(navController,startDestination=initialRoute,modifier=Modifier.padding(innerPadding)) {
             composable(START_ROUTE){StartScreen({val role=sessionStore.getRole();navController.navigate(if(role=="STAFF"||role=="ADMIN")MANAGEMENT_HOME_ROUTE else STUDENT_HOME_ROUTE){popUpTo(START_ROUTE){inclusive=true}}},{navController.navigate(SOS_ROUTE)})}
-            composable(SOS_ROUTE){SosOnlyScreen(sosViewModel)}
+            composable(SOS_ROUTE){SosScreen(sosViewModel)}
             composable(STUDENT_HOME_ROUTE){StudentHomeScreen(sessionStore.getUserName()?:"Student",logout)}
             composable(Screen.Education.route){EducationScreen()}
             composable(Screen.Response.route){ResponseScreen(appViewModel,sosViewModel){navController.navigate(CAMPUS_MAP_ROUTE)}}
@@ -83,4 +83,4 @@ sealed class Screen(val route:String,val title:String,val icon:androidx.compose.
 @Composable fun StudentHomeScreen(name:String,onLogout:()->Unit){Column(Modifier.fillMaxSize().padding(20.dp),horizontalAlignment=Alignment.CenterHorizontally){Text("Welcome, $name",style=MaterialTheme.typography.headlineMedium);Text("Student dashboard");Button(onClick=onLogout){Text("LOG OUT")}}}
 @Composable fun EducationScreen()=EducationDashboardScreen()
 @Composable fun ResponseScreen(appViewModel:AppViewModel,sosViewModel:SosViewModel,onOpenCampusMap:()->Unit)=EmergencyResponseScreen(appViewModel,sosViewModel,onOpenCampusMap)
-@Composable fun CenteredText(text:String){Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Text(text,style=MaterialTheme.typography.headlineMedium)}}
+@Composable fun CenteredText(text:String){Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Text(text,style=MaterialTheme.typography.headlineMedium)} }
