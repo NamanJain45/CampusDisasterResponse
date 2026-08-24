@@ -37,16 +37,26 @@ fun CampusEvacuationMapScreen(onBack: () -> Unit = {}) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var incidents by remember { mutableStateOf<List<MapIncident>>(emptyList()) }
+    var query by remember { mutableStateOf("") }
+    var kindFilter by remember { mutableStateOf("ALL") }
+    var statusFilter by remember { mutableStateOf("ALL") }
     var loadMessage by remember { mutableStateOf("Loading incident locations…") }
 
     suspend fun loadIncidents() {
         if (token.isBlank()) return
         val result = withContext(Dispatchers.IO) { MapIncidentClient().list(token) }
-        result.onSuccess { incidents = it; loadMessage = if (it.isEmpty()) "No incident locations recorded" else "${it.size} incident locations" }
+        result.onSuccess { incidents = it; loadMessage = if (it.isEmpty()) "No incident/SOS locations recorded" else "${it.size} locations" }
             .onFailure { loadMessage = "Incident locations unavailable" }
     }
 
     LaunchedEffect(token) { loadIncidents() }
+
+    val visible = incidents.filter { item ->
+        val kindOk = kindFilter == "ALL" || item.kind == kindFilter
+        val statusOk = statusFilter == "ALL" || item.status == statusFilter
+        val queryOk = query.isBlank() || listOf(item.type, item.location, item.status, item.kind).any { it.contains(query, ignoreCase = true) }
+        kindOk && statusOk && queryOk
+    }
 
     Scaffold(topBar = {
         TopAppBar(
@@ -66,16 +76,28 @@ fun CampusEvacuationMapScreen(onBack: () -> Unit = {}) {
                 )
                 Column(Modifier.align(Alignment.BottomCenter).background(Color(0xDD000000)).padding(10.dp)) {
                     Text("Reference campus layout • Pinch to zoom • Drag to pan", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Incident list below uses the reporter GPS coordinates when available.", color = Color.LightGray, fontSize = 10.sp)
+                    Text("Incident and SOS records below use reporter GPS when available.", color = Color.LightGray, fontSize = 10.sp)
                 }
             }
-            Column(Modifier.fillMaxWidth().heightIn(max = 280.dp).padding(12.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("INCIDENT LOCATIONS", style = MaterialTheme.typography.titleMedium); Text(loadMessage, style = MaterialTheme.typography.bodySmall) }
-                Spacer(Modifier.height(6.dp))
+            Column(Modifier.fillMaxWidth().heightIn(max = 360.dp).padding(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("INCIDENT & SOS LOCATIONS", style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = { loadIncidents() }) { Text("REFRESH") }
+                }
+                Text(loadMessage, style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search type/location/status") })
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("ALL", "INCIDENT", "SOS").forEach { value ->
+                        TextButton(onClick = { kindFilter = value }) { Text(if (kindFilter == value) "[$value]" else value) }
+                    }
+                    listOf("ALL", "ACTIVE", "RESOLVED").forEach { value ->
+                        TextButton(onClick = { statusFilter = value }) { Text(if (statusFilter == value) "[$value]" else value) }
+                    }
+                }
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(incidents, key = { it.id }) { incident ->
+                    items(visible, key = { "${it.kind}:${it.id}" }) { incident ->
                         Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(10.dp)) {
-                            Text("${incident.type} • ${incident.status}", style = MaterialTheme.typography.titleSmall)
+                            Text("${incident.kind} • ${incident.type} • ${incident.status}", style = MaterialTheme.typography.titleSmall)
                             Text(incident.location)
                             if (incident.latitude != null && incident.longitude != null) Text("GPS: ${incident.latitude}, ${incident.longitude}", style = MaterialTheme.typography.bodySmall)
                             Text(incident.createdAt, style = MaterialTheme.typography.bodySmall)
