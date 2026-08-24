@@ -58,7 +58,7 @@ sealed class Screen(val route:String,val title:String,val icon:androidx.compose.
     LaunchedEffect(loggedIn, token) {
         if (!loggedIn || token.isNullOrBlank()) return@LaunchedEffect
         val client = com.vjti.campusdisasterresponse.network.NotificationClient()
-        val prefs = context.getSharedPreferences("notification_delivery", MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("notification_delivery", 0)
         while (true) {
             delay(20_000)
             runCatching {
